@@ -1,0 +1,87 @@
+{% autoescape off %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Account Activation</title>
+    <style>
+      body {
+        font-family: "Arial", sans-serif;
+        margin: 0;
+        padding: 0;
+        background-color: #f4f4f4;
+        color: #333;
+      }
+      .container {
+        max-width: 600px;
+        margin: 20px auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background-color: #4caf50; /* Main green color */
+        color: #fff;
+        padding: 10px;
+        text-align: center;
+        border-radius: 8px 8px 0 0;
+        font-size: 24px;
+        margin-bottom: 20px;
+      }
+      .content {
+        font-size: 16px;
+        line-height: 1.6;
+        padding: 0 10px;
+      }
+      .footer {
+        margin-top: 20px;
+        font-size: 14px;
+        text-align: center;
+        color: #aaa;
+        padding: 10px;
+      }
+      .otp {
+        font-weight: bold;
+        font-size: 20px;
+        letter-spacing: 3px;
+        color: #4caf50; /* Main green color */
+      }
+      a.button {
+        display: inline-block;
+        background-color: #4caf50; /* Main green color */
+        color: #ffffff;
+        padding: 10px 20px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: bold;
+        margin-top: 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">Account Activation</div>
+      <div class="content">
+        <p>Hi {{ user.first_name }},</p>
+        <p>
+          Your OTP for account activation is: <span class="otp">{{ otp }}</span>
+        </p>
+        <p>
+          Please enter this OTP in the app to confirm your registration. If you
+          think this is a mistake, just ignore this email.
+        </p>
+        <p>
+          <a href="your-activation-link-here" class="button"
+            >Activate Account</a
+          >
+        </p>
+      </div>
+      <div class="footer">Thanks,<br />Your Team</div>
+    </div>
+  </body>
+</html>
+
+{% endautoescape %}

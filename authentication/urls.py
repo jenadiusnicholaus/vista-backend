@@ -1,11 +1,31 @@
 
 
 from django.contrib import admin
-from django.urls import path, include  
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView     
+from django.urls import path, include , re_path 
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView 
+from . views import (
+                    VCheckEmailExistence,
+                    VLoginView,
+                    VRegisterView,
+                    VResendOtpView,
+                    VActivateAccountView,
+                    ResetPasswordInitView,
+                    ResetPasswordConfirmView
+                              )
+from rest_framework import routers
+router = routers.DefaultRouter()
+router.register(r'guest-registration', VRegisterView)
+
 
 urlpatterns = [
-    path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-
+    path('', include(router.urls)),
+    path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('vlogin/', VLoginView.as_view(), name='custom_login'),
+    path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('check-email/', VCheckEmailExistence.as_view(), name='check_email'),
+    path('resend-otp/', VResendOtpView.as_view(), name='resend_otp'),
+    path('activate-account/', VActivateAccountView.as_view(), name='activate_account'),
+    path('get-reset-password-token/', ResetPasswordInitView.as_view(), name='reset_password'),
+    path('confirm-reset-password/', ResetPasswordConfirmView.as_view(), name='reset_password_confirm'),
+    
 ]

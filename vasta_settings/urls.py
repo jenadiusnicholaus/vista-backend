@@ -14,9 +14,16 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.contrib import admin
-from django.urls import path, include   
+from django.urls import path, include, re_path
+from vasta_settings import settings
+
+API_VERSION =  settings.API_VERSION
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api-auth/', include('rest_framework.urls'))       
+    path('api-auth/', include('rest_framework.urls')) ,
+    path(f"api/{API_VERSION}/authentication/", include("authentication.urls")), 
+    re_path(r'^api/v1/social/', include('drf_social_oauth2.urls', namespace='drf'))
+
+
 ]
