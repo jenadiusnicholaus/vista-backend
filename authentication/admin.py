@@ -8,8 +8,13 @@ from .forms import CustomUserChangeForm, CustomUserCreationForm
 from .models import CustomUser, VerificationCode  
 
 
+
+
+
+
+
 class CustomUserAdmin(UserAdmin):
-    model = CustomUser
+    # model = CustomUser
     add_form = CustomUserCreationForm
     list_display = (
         "email",
@@ -20,6 +25,8 @@ class CustomUserAdmin(UserAdmin):
         "is_staff",
         "is_active",
         "last_login",
+        "phone_is_verified",
+        "agreed_to_Terms"
     )
     list_filter = (
         "email",
@@ -41,6 +48,7 @@ class CustomUserAdmin(UserAdmin):
             "is_staff", 
             "is_active", 
             "groups", 
+            "phone_is_verified",
             "user_permissions")}
         ),
     )
@@ -56,11 +64,15 @@ class CustomUserAdmin(UserAdmin):
             "is_staff",
             "is_active",
             "groups",
-            "user_permissions")}
+            "user_permissions",
+            "phone_is_verified"
+            
+            )}
         ),
     )
     search_fields = ("email",)
     ordering = ("email",)
+    list_display_links = ("email","phone_number")
 
 
 class VerificationCodeAdmin(admin.ModelAdmin):

@@ -6,7 +6,26 @@ from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 
 
+
 User = get_user_model()
+
+class UserSerializer(serializers.ModelSerializer):  
+    class Meta:
+        model = User
+        fields = (
+            "id",
+            "email",
+            "first_name",
+            "last_name",
+            "phone_number",
+            "date_of_birth",
+            "is_active",
+            "phone_is_verified",    
+            "last_login",
+            "date_joined",
+        )
+        read_only_fields = ("id", "is_staff", "is_active", "last_login", "date_joined")
+
 
 
 class VGuestRegisterSerializer(serializers.ModelSerializer):
@@ -29,8 +48,7 @@ class VGuestRegisterSerializer(serializers.ModelSerializer):
             "last_name",
             "phone_number",
             "date_of_birth",
-
-
+            "agreed_to_Terms"
         )
         extra_kwargs = {
             "first_name": {"required": True},
@@ -52,9 +70,8 @@ class VGuestRegisterSerializer(serializers.ModelSerializer):
             last_name=validated_data["last_name"],
             phone_number=validated_data["phone_number"],
             date_of_birth=validated_data["date_of_birth"],
-            
-      
-            
+            agreed_to_Terms=validated_data["agreed_to_Terms"]
+               
         )
 
         user.set_password(validated_data["password"])

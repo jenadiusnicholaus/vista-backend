@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import  viewsets
 
 from authentication.models import VerificationCode
-from authentication.serializers import ResetPasswordConfirmSerializer, VGuestRegisterSerializer
+from authentication.serializers import ResetPasswordConfirmSerializer, UserSerializer, VGuestRegisterSerializer
 from django.utils import timezone
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -19,22 +19,27 @@ from django.core.exceptions import ValidationError
 from django.core.mail import BadHeaderError
 from django.conf import settings
 # from twilio.rest import Client
+import logging as loggger
 
 
 
 User = get_user_model()
-otp = random.randint(100000, 999999)
 
 class VCheckEmailExistence(APIView):
-    # permission_classes = []
     
     def post(self, request):
         email = request.data.get('email')
-        if User.objects.filter(email=email).exists():
-            return Response({'message': 'Email already exists', "registered":False}, status=status.HTTP_400_BAD_REQUEST)
+        user = User.objects.filter(email=email)
+        serializer = UserSerializer(user.first())
+        if user.exists():
+            return Response({
+                'message': 'Login',
+                'data': serializer.data,
+                
+                }, status=status.HTTP_400_BAD_REQUEST)
         return Response({
             'message': 'Email is available', 
-            "registered":True
+            'data': serializer.data     
             }, status=status.HTTP_200_OK)
     
 
@@ -44,15 +49,15 @@ class VLoginView(APIView):
         password = request.data.get('password')
         user = authenticate(request, email=email, password=password)
         if user is not None:
-            print(user)
             
             user.last_login = timezone.localtime(timezone.now())
             user.save()
         if user is not None:
             refresh = RefreshToken.for_user(user)
             return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
+                "refresh": str(refresh),
+                "access": str(refresh.access_token),
+                 
             }, status=status.HTTP_200_OK)
         return Response({'error': 'Invalid Credentials'}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -62,10 +67,16 @@ class VRegisterView(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = VGuestRegisterSerializer
 
+    def mask_email(self, email):
+        name, domain = email.split('@')
+        name = name[:1] + "***" + name[-1:] if len(name) > 1 else name + "***"
+        return f"{name}@{domain}"
+
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             user= serializer.save()
+            otp = random.randint(100000, 999999)
 
             VerificationCode.objects.create( 
                 user=user, 
@@ -93,22 +104,37 @@ class VRegisterView(viewsets.ModelViewSet):
                 res = email.send()
             except:
                 user.delete()  # Delete the user if sending the email fails
+                loggger.error("Failed to send email.")
+
                 return Response({"message": "Failed to send email."}, status=status.HTTP_400_BAD_REQUEST)
 
-
+            masked_email = self.mask_email( request.data.get('email'))
+            message = f"User created successfully. A verification code has been sent to your email ({masked_email}). Please verify your account immediately before the session expires in 5 minutes."
             return Response(
                 {
-                "message": "User created successfully. A verification code has been sent to your email. Please verify your account immediately before the session expires in 5 minutes.",
+                "message": message,
+                "data": serializer.data
 
-             
                 }
             , status=status.HTTP_201_CREATED)
         else:   
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            loggger.warning(serializer.errors, exc_info=True, extra={
+
+                'request': request
+            })
+            
+            return Response(
+                {
+                "message": serializer.errors
+                }
+                
+                , status=status.HTTP_400_BAD_REQUEST)
 
 
 class VResendOtpView(APIView):
     def post(self, request):
+        otp = random.randint(100000, 999999)
+
         try:
             user = User.objects.get(email=request.data.get('email'))
         except User.DoesNotExist:
@@ -135,9 +161,7 @@ class VResendOtpView(APIView):
         })
         try:
             email = EmailMessage(mail_subject, message, to=[request.data.get('email')])
-
             email.content_subtype = 'html'
-
             email.send()
             return Response({'message': 'OTP sent successfully'}, status=status.HTTP_200_OK)
         except:
@@ -150,7 +174,7 @@ class VActivateAccountView(APIView):
         try:
             user = User.objects.get(email=request.data.get('email'))
         except User.DoesNotExist:
-            return Response({'error': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
         otp =  request.data.get("otp", None)
         # user = User.objects.get(email=request.data.get('email'))
         verification_model = VerificationCode.objects.get(user=user)
@@ -161,7 +185,7 @@ class VActivateAccountView(APIView):
             user.save()
             return Response({'message': 'Account activated successfully'}, status=status.HTTP_200_OK)
         else:
-            return Response({'error': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
         
 class ResetPasswordInitView(APIView):
     def post(self, request):
@@ -226,7 +250,7 @@ class ResetPasswordConfirmView(APIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
-class PhoneNumberAuthentication(APIView):
+class PhoneNumberAuthenticationView(APIView):
     def post(self, request):
         phone_number = request.data.get('phone_number')
         user = User.objects.filter(phone_number=phone_number).first()
@@ -239,7 +263,6 @@ class PhoneNumberAuthentication(APIView):
             VerificationCode.objects.create(
                 user=user,
                 code=otp,
-                code_type='phone',
                 created_at=timezone.localtime(timezone.now())
             )
             
@@ -273,15 +296,23 @@ class PhoneNumberAuthentication(APIView):
         # )
         # print(message.sid)
 
-class VerifyPhoneNumber(APIView):
+
+
+
+
+class VerifyPhoneAndLoginView(APIView):
+    """
+    Verify phone number and login
+    """
     def post(self, request):
         phone_number = request.data.get('phone_number')
         otp = request.data.get('otp')
         user = User.objects.filter(phone_number=phone_number).first()
+
         if not user:
             return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        verification_code = VerificationCode.objects.filter(user=user, code=otp, code_type='phone').first()
+        verification_code = VerificationCode.objects.filter(user=user, code=otp).first()
         if not verification_code:
             return Response({'message': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -290,25 +321,22 @@ class VerifyPhoneNumber(APIView):
         if time_remaining < timedelta(minutes=0):
             return Response({'message': 'OTP has expired'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # OTP is valid
-        verification_code.otp_used = True
-        verification_code.save()
-        return Response({'message': 'Phone number verified successfully'}, status=status.HTTP_200_OK)
-    
+        # authenticate the user and login
+        if user.is_active:
+            if  user.phone_is_verified == False:
+                user.phone_is_verified = True
+                user.save()
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            }, status=status.HTTP_200_OK)
+        
+        else:
+            return Response({'message': 'User is not active or phone number is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+        
 
-
-# Todo:
-# """
-# - Social Authentication
-#     1. Google
-#     2. Facebook
-#     3. Twitter
-#     4. Apple  
-  
-
-# """
-
-
+        
 
             
 
