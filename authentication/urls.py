@@ -3,6 +3,7 @@
 from django.contrib import admin
 from django.urls import path, include , re_path 
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView 
+from rest_framework_simplejwt.views import TokenBlacklistView
 from . views import (
                     VCheckEmailExistence,
                     VLoginView,
@@ -22,6 +23,7 @@ router.register(r'guest-registration', VRegisterView)
 urlpatterns = [
     path('', include(router.urls)),
     path('login/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('token/blacklist/', TokenBlacklistView.as_view(), name='token_blacklist'),
     path('vlogin/', VLoginView.as_view(), name='custom_login'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('check-email/', VCheckEmailExistence.as_view(), name='check_email'),

@@ -174,6 +174,7 @@ class VActivateAccountView(APIView):
         try:
             user = User.objects.get(email=request.data.get('email'))
         except User.DoesNotExist:
+            loggger.error('User does not exist.')
             return Response({'message': 'User does not exist'}, status=status.HTTP_400_BAD_REQUEST)
         otp =  request.data.get("otp", None)
         # user = User.objects.get(email=request.data.get('email'))
@@ -185,6 +186,7 @@ class VActivateAccountView(APIView):
             user.save()
             return Response({'message': 'Account activated successfully'}, status=status.HTTP_200_OK)
         else:
+            loggger.error('Invalid or expired OTP')
             return Response({'message': 'Invalid or expired OTP'}, status=status.HTTP_400_BAD_REQUEST)
         
 class ResetPasswordInitView(APIView):
@@ -253,49 +255,35 @@ class ResetPasswordConfirmView(APIView):
 class PhoneNumberAuthenticationView(APIView):
     def post(self, request):
         phone_number = request.data.get('phone_number')
-        user = User.objects.filter(phone_number=phone_number).first()
-
-        # Generate OTP
-        otp = random.randint(100000, 999999)
+        try:
+            user = User.objects.get(phone_number=phone_number, is_active=True)
+        except User.DoesNotExist:
+            return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
         if user:
-            # User exists, update or create VerificationCode
-            VerificationCode.objects.create(
-                user=user,
-                code=otp,
-                created_at=timezone.localtime(timezone.now())
-            )
-            
-        else:
-            # Create a new user and VerificationCode
-            user = User.objects.create(phone_number=phone_number)
+            # Generate OTP
+            otp = random.randint(100000, 999999)
             VerificationCode.objects.create(
                 user=user,
                 code=otp,
                 created_at=timezone.localtime(timezone.now())
             )
 
-        # Send OTP via SMS
-        # self.send_otp_sms(phone_number, otp)
-        return Response({
-            "alternative_otps": otp,
-           
-            'message': 'OTP sent successfully. Please verify to complete registration.'}, status=status.HTTP_200_OK)
+            # Send OTP via SMS (assuming the method is defined in the same class or elsewhere)
+            self.send_otp_sms(phone_number, otp)
+
+            return Response({
+                "alternative_otps": otp,
+                'message': 'OTP sent successfully. Please use it to login.'
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'message': 'No active user found with the provided phone number.'
+            }, status=status.HTTP_404_NOT_FOUND)
 
     def send_otp_sms(self, phone_number, otp):
+        # Implementation for sending OTP via SMS
         pass
-        # Your Twilio account SID and Auth Token
-        # account_sid = settings.TWILIO_ACCOUNT_SID
-        # auth_token = settings.TWILIO_AUTH_TOKEN
-        # client = Client(account_sid, auth_token)
-
-        # message = client.messages.create(
-        #     body=f"Your verification code is: {otp}",
-        #     from_=settings.TWILIO_PHONE_NUMBER,  # Your Twilio phone number
-        #     to=phone_number
-        # )
-        # print(message.sid)
-
 
 
 
@@ -307,38 +295,34 @@ class VerifyPhoneAndLoginView(APIView):
     def post(self, request):
         phone_number = request.data.get('phone_number')
         otp = request.data.get('otp')
-        user = User.objects.filter(phone_number=phone_number).first()
 
-        if not user:
+        if not phone_number or not otp:
+            return Response({'message': 'Phone number and OTP are required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(phone_number=phone_number, is_active=True)
+        except User.DoesNotExist:
             return Response({'message': 'User not found'}, status=status.HTTP_404_NOT_FOUND)
 
-        verification_code = VerificationCode.objects.filter(user=user, code=otp).first()
-        if not verification_code:
+        try:
+            verification_code = VerificationCode.objects.get(user=user, code=otp)
+        except VerificationCode.DoesNotExist:
             return Response({'message': 'Invalid OTP'}, status=status.HTTP_400_BAD_REQUEST)
 
         # Check if OTP has expired
-        time_remaining = verification_code.created_at + timedelta(minutes=5) - timezone.localtime(timezone.now())
-        if time_remaining < timedelta(minutes=0):
+        if timezone.localtime(timezone.now()) > verification_code.created_at + timedelta(minutes=5):
             return Response({'message': 'OTP has expired'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # authenticate the user and login
-        if user.is_active:
-            if  user.phone_is_verified == False:
-                user.phone_is_verified = True
-                user.save()
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'refresh': str(refresh),
-                'access': str(refresh.access_token),
-            }, status=status.HTTP_200_OK)
-        
-        else:
-            return Response({'message': 'User is not active or phone number is not verified'}, status=status.HTTP_400_BAD_REQUEST)
+        # If user's phone is not verified, verify it
+        if not user.phone_is_verified:
+            user.phone_is_verified = True
+            user.save()
+
+        # Generate tokens
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }, status=status.HTTP_200_OK)
         
 
-        
-
-            
-
-
-     
