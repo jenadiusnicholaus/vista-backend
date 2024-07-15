@@ -23,7 +23,8 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls')) ,
     path(f"api/{API_VERSION}/authentication/", include("authentication.urls")), 
-    re_path(r'^api/v1/social/', include('drf_social_oauth2.urls', namespace='drf'))
+    re_path(r'^api/v1/social/', include('drf_social_oauth2.urls', namespace='drf')),
+    path(f"api/{API_VERSION}/user-data/", include("user_data.urls")),
 
 
 ]

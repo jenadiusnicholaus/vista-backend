@@ -47,6 +47,8 @@ INSTALLED_APPS = [
     'social_django',
     'drf_social_oauth2',
 
+    "user_data"
+
 ]
 
 MIDDLEWARE = [
@@ -121,7 +123,8 @@ AUTH_PASSWORD_VALIDATORS = [
 REST_FRAMEWORK = {
     # Use Django's standard `django.contrib.auth` permissions,
     # or allow read-only access for unauthenticated users.
-    'DEFAULT_PERMISSION_CLASSES': [
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
         'rest_framework.authentication.BasicAuthentication',
         'rest_framework.authentication.SessionAuthentication',        
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -130,9 +133,9 @@ REST_FRAMEWORK = {
     
         
     ],
-    'DEFAULT_PERMISSION_CLASSES': (
+    'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',  # Or another default permission
-    ),
+    ],
 }
 
 AUTHENTICATION_BACKENDS = (
