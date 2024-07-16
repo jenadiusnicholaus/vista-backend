@@ -44,12 +44,11 @@ INSTALLED_APPS = [
     "rest_framework",   
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
-
     'oauth2_provider',
     'social_django',
     'drf_social_oauth2',
-
-    "user_data"
+    "user_data",
+    "property",
 
 ]
 
@@ -219,6 +218,11 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = 'static/'
+# STATICFILES_DIRS = [
+#     BASE_DIR / "static",
+# ]   
+MADIA_URL = '/media/'   
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
