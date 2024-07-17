@@ -4,6 +4,9 @@ from django.core.exceptions import ValidationError
 
 User = get_user_model()
 
+
+
+
 class UserProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=False)  # Assuming you want to include email
 

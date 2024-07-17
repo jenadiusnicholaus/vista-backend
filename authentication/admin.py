@@ -42,7 +42,10 @@ class CustomUserAdmin(UserAdmin):
             "last_name", 
             "email", 
             "password", 
-            "date_of_birth")}
+            "date_of_birth",
+            "phone_number",
+            "user_profile_pic"
+            )}
         ),
         ("Permissions", {"fields": (
             "is_staff", 
@@ -65,7 +68,8 @@ class CustomUserAdmin(UserAdmin):
             "is_active",
             "groups",
             "user_permissions",
-            "phone_is_verified"
+            "phone_is_verified",
+            "user_profile_pic"
             
             )}
         ),

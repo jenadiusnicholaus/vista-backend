@@ -9,7 +9,8 @@ from django.contrib.auth.password_validation import validate_password
 
 User = get_user_model()
 
-class UserSerializer(serializers.ModelSerializer):  
+class UserSerializer(serializers.ModelSerializer):
+ 
     class Meta:
         model = User
         fields = (
@@ -23,8 +24,13 @@ class UserSerializer(serializers.ModelSerializer):
             "phone_is_verified",    
             "last_login",
             "date_joined",
+            'user_profile_pic'
         )
-        read_only_fields = ("id", "is_staff", "is_active", "last_login", "date_joined")
+        read_only_fields = ("id", "is_staff", "is_active", "date_joined")
+
+
+
+    
 
 
 

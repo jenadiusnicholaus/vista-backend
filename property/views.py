@@ -6,7 +6,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.pagination import PageNumberPagination
-from property.paginators import CustomPagination
+from property.paginators import CustomPageNumberPagination, CustomPagination
 
 
 # Create your views here.
@@ -15,7 +15,8 @@ from property.paginators import CustomPagination
 class GetPropertysPaginationView(viewsets.ModelViewSet):
     queryset = Property.objects.filter(publication_status=True).order_by("-created_at")
     serializer_class = PropertySerializers
-    pagination_class = CustomPagination
+    pagination_class = CustomPageNumberPagination
+
     permission_classes = [AllowAny]
 
     def list(self, request, *args, **kwargs):
@@ -27,7 +28,7 @@ class GetPropertysPaginationView(viewsets.ModelViewSet):
             queryset = self.filter_queryset(
                 self.get_queryset().filter(
                     category=request.query_params.get("category", None)
-                )
+                ).order_by("-created_at")
             )
 
         page = self.paginate_queryset(queryset)

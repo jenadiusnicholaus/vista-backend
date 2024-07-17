@@ -19,15 +19,17 @@ class Category(models.Model):
         return self.name
     
 
-class PropertyOwner(models.Model):
+class PropertyHost(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     property_count = models.IntegerField(default=0)
-    is_verified = models.BooleanField(default=False)    
+    is_verified = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
         return self.user.email
+    
+   
     
      
 
@@ -58,7 +60,12 @@ class Property(models.Model):
         ('EUR', 'EUR'),
     )
 
-
+    business_type = (
+        ('rent', 'Rent'),
+        ('sale', 'Sale'),
+        ('rent_sale', 'Rent/Sale'),
+        ('booking', 'Booking'),
+    )
 
 
     name = models.CharField(max_length=100)
@@ -68,13 +75,14 @@ class Property(models.Model):
     period = models.CharField(max_length=10, choices=period, default='night')
     description = models.TextField()
     address = models.CharField(max_length=100)
+    business_type = models.CharField(choices=business_type, max_length=100, default='rent') 
     city = models.CharField(max_length=100)
     state = models.CharField(max_length=100)
     country = models.CharField(max_length=100)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)  
     longitude = models.DecimalField(max_digits=9, decimal_places=6)  
     image = models.ImageField(upload_to='property_pics/', null=True, blank=True)  
-    owner = models.ForeignKey(PropertyOwner, on_delete=models.CASCADE)
+    host = models.ForeignKey(PropertyHost, on_delete=models.CASCADE, related_name='property_host', null=True)
     availability_status = models.BooleanField(default=True, choices=AVAILABILITY_STATUS )
     publication_status = models.BooleanField(default=True, choices=PUBLICATION_STATUS)
     created_at = models.DateTimeField(auto_now_add=True)

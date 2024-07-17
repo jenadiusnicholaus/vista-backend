@@ -84,7 +84,7 @@ class VRegisterView(viewsets.ModelViewSet):
                 created_at=timezone.localtime(timezone.now()))
             
 
-            # add to Rental owner's Group
+            # add to Rental host's Group
             user_group, created = Group.objects.get_or_create(name='guest')
             if not user.groups.filter(name='guest').exists():
                 user.groups.add(user_group)

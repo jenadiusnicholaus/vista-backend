@@ -1,13 +1,19 @@
 from rest_framework import serializers
-from property.models import Property, PropertyOwner, Category, PropertyFacility, PropertyImages, PropertyReview, PropertyAmenity
+from property.models import Property, PropertyHost, Category, PropertyFacility, PropertyImages, PropertyReview, PropertyAmenity
 from django.contrib.auth import get_user_model
 from django.conf import settings 
+from authentication.serializers import UserSerializer   
 
 
-class GetPropertyOwnerSerializers(serializers.ModelSerializer):
+class GetPropertyhostSerializers(serializers.ModelSerializer):
+    user = UserSerializer()
+
     class Meta:
-        model = PropertyOwner
+        model = PropertyHost
         fields = '__all__'
+
+    def get_time_at_visita(self, obj):
+        return obj.created_at.strftime('%Y-%m-%d %H:%M:%S')
 
 class GetCategorySerializers(serializers.ModelSerializer):
     class Meta:
@@ -15,12 +21,13 @@ class GetCategorySerializers(serializers.ModelSerializer):
         fields = '__all__'
 
 class PropertySerializers(serializers.ModelSerializer):
-    owner = GetPropertyOwnerSerializers()
+    host = GetPropertyhostSerializers()
     category = GetCategorySerializers()
-
     class Meta:
         model = Property
         fields = '__all__'
+
+    
 
 class GetPropertyFacilitySerializers(serializers.ModelSerializer):
     class Meta:
@@ -32,7 +39,9 @@ class PropertyImagesSerializers(serializers.ModelSerializer):
         model = PropertyImages
         fields = '__all__'
 
-class PropertyReviewSerializers(serializers.ModelSerializer):   
+class PropertyReviewSerializers(serializers.ModelSerializer): 
+    user = UserSerializer()
+    
     class Meta:
         model = PropertyReview
         fields = '__all__'
@@ -48,7 +57,10 @@ class GetPropertyDetailsSerializers(serializers.ModelSerializer):
     images = PropertyImagesSerializers(many=True)
     facilities = GetPropertyFacilitySerializers(many=True)
     reviews = PropertyReviewSerializers(many=True)
-    amenities = PropertyAmenitySerializers(many=True)   
+    amenities = PropertyAmenitySerializers(many=True) 
+    host = GetPropertyhostSerializers() 
+    category = GetCategorySerializers()
+    
 
     class Meta:
         model = Property
@@ -66,7 +78,7 @@ class GetPropertyDetailsSerializers(serializers.ModelSerializer):
             'latitude',
             'longitude',
             'image',
-            'owner',
+            'host',
             'availability_status',
             'publication_status',
             'images',
@@ -81,6 +93,6 @@ class GetPropertyDetailsSerializers(serializers.ModelSerializer):
             'availability_status': {'required': False},
             'publication_status': {'required': False},
         }
-        read_only_fields = ['owner']
+        read_only_fields = ['host', 'created_at', 'updated_at', 'images', 'facilities', 'reviews', 'amenities']
 
   

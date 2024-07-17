@@ -55,7 +55,8 @@ class CustomUser(AbstractUser):
     date_of_birth = models.DateField(verbose_name="Birthday", null=True)
     phone_number = models.CharField(max_length=15, verbose_name="Phone Number", null=True)
     agreed_to_Terms = models.BooleanField(default=False)
-    user_profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)  
+    user_profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True) 
+
 
     # Override groups and user_permissions fields to add related_name
     groups = models.ManyToManyField(
@@ -82,6 +83,7 @@ class CustomUser(AbstractUser):
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = ["first_name", "last_name", "date_of_birth", "phone_number", "agreed_to_Terms"]
     phone_is_verified = models.BooleanField(default=False)
+    
 
     objects = CustomUserManager()
     class Meta:

@@ -79,7 +79,7 @@ class Migration(migrations.Migration):
             ],
         ),
         migrations.CreateModel(
-            name='PropertyOwner',
+            name='Propertyhost',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('property_count', models.IntegerField(default=0)),
@@ -91,8 +91,8 @@ class Migration(migrations.Migration):
         ),
         migrations.AddField(
             model_name='property',
-            name='owner',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='property.propertyowner'),
+            name='host',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='property.propertyhost'),
         ),
         migrations.CreateModel(
             name='PropertyReview',
