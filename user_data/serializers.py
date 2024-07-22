@@ -2,6 +2,10 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ValidationError
 
+from authentication.serializers import UserSerializer
+from property.serializers import PropertySerializers
+from user_data.models import MyFavoriteProperty
+
 User = get_user_model()
 
 
@@ -30,4 +34,18 @@ class UserProfileSerializer(serializers.ModelSerializer):
         # Handle user_profile_pic if it's not meant to be read-only or is conditionally updated
         instance.save()
         return instance
+    
+class GetMyFavoritePropertySerializers(serializers.ModelSerializer):
+    user = UserSerializer()
+    property = PropertySerializers()
+
+    class Meta:
+        model = MyFavoriteProperty
+        fields = '__all__'
+
+class CreateMyFavoritePropertySerializers(serializers.ModelSerializer):
+    class Meta:
+        model = MyFavoriteProperty
+        fields = '__all__'
+
       

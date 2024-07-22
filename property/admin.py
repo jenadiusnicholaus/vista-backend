@@ -1,6 +1,5 @@
 from django.contrib import admin
-from . models import  (Property, PropertyAmenity,PropertyFacility , PropertyImages, PropertyHost, Category, PropertyReview)  
-# Register your models here.
+from . models import  (Property, PropertyAmenity,PropertyFacility , PropertyImages, PropertyHost, Category, PropertyReview, SupportedGeoRegions, DeliverGeoRegion,PropertyHostVerification, PropertyHostCancelationPolicy,PropertyRules, PropertyRentingRequirements, PropertyRentingDurationOptions)
 
 class PropertyAdmin(admin.ModelAdmin):
     list_display = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
@@ -46,7 +45,34 @@ class PropertyReviewAdmin(admin.ModelAdmin):
     search_fields = ['property', 'user', 'rating', 'comment']
     list_filter = ['property', 'user', 'rating', 'comment']
 
+    list_per_page = 10
+class SupportedGeoRegionsAdmin(admin.ModelAdmin):
+    list_display = ['region_name', 'country', 'lat', 'lon', 'address_code', 'state', 'city', 'created_at', 'updated_at']
+    search_fields = ['region_name', 'country', 'lat', 'lon', 'address_code', 'state', 'city', 'created_at', 'updated_at']
+    list_filter = ['region_name', 'country', 'lat', 'lon', 'address_code', 'state', 'city', 'created_at', 'updated_at']
+    # auto fill the slug
+    prepopulated_fields = {'slug': ('region_name',)}
+    list_per_page = 10
 
+class DeliverGeoRegionAdmin(admin.ModelAdmin):
+    list_display = ['region_name', 'country', 'lat', 'lon', 'address_code', 'state', 'city', 'created_at', 'updated_at']
+    search_fields = ['region_name', 'country', 'lat', 'lon', 'address_code', 'state', 'city', 'created_at', 'updated_at']
+    list_filter = ['region_name', 'country', 'lat', 'lon', 'address_code', 'state', 'city', 'created_at', 'updated_at']
+    # auto fill the slug
+    prepopulated_fields = {'slug': ('region_name',)}
+    list_per_page = 10
+
+class PropertyRentingDurationOptionsAdmin(admin.ModelAdmin):
+    list_display = ['time_in_number', 'time_in_text']
+    search_fields = ['time_in_number', 'time_in_text']
+    list_filter = ['time_in_number', 'time_in_text']
+    list_per_page = 10
+
+
+admin.site.register(PropertyHostVerification)
+admin.site.register(PropertyRentingRequirements)
+admin.site.register(PropertyHostCancelationPolicy)
+admin.site.register(PropertyRules)  
 admin.site.register(PropertyAmenity, PropertyAmenityAdmin)
 admin.site.register(PropertyFacility, PropertyFacilityAdmin)
 admin.site.register(PropertyImages, PropertyImagesAdmin)
@@ -54,6 +80,9 @@ admin.site.register(PropertyHost, PropertyhostAdmin)
 admin.site.register(PropertyReview, PropertyReviewAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Property, PropertyAdmin)
+admin.site.register(SupportedGeoRegions, SupportedGeoRegionsAdmin)
+admin.site.register(DeliverGeoRegion, DeliverGeoRegionAdmin)
+admin.site.register(PropertyRentingDurationOptions, PropertyRentingDurationOptionsAdmin)
 
 
 
