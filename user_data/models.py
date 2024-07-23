@@ -4,11 +4,6 @@ from property.models import Property
 
 User = get_user_model()
 
-
-
-
-
-
 class MyFavoriteProperty(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     property = models.ForeignKey(Property, on_delete=models.CASCADE)
@@ -48,7 +43,7 @@ class MyPaymentCard(models.Model):
     def __str__(self):
         return f'{self.user.email} - {self.card_number} - {self.card_holder_name} - {self.card_expiry} - {self.card_cvv}'
 
-class MyMobileMoney(models.Model):
+class MyMobileMoneyPaymentinfos(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     mobile_number = models.CharField(max_length=100)
     mobile_holder_name = models.CharField(max_length=100)
@@ -59,23 +54,6 @@ class MyMobileMoney(models.Model):
     def __str__(self):
         return f'{self.user.email} - {self.mobile_number} - {self.mobile_holder_name} - {self.mobile_network}'
     
-
-class PaymentMethod(models.Model):
-    Payments_methods = ( 
-        ('creditcard', 'Credit Card'),
-        ('airtellmoney', 'Debit Card'),
-        ('mpesa', 'Mpesa'),
-        ("tigopesa", "Tigo Pesa"),
-      
-    )
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    method = models.CharField(max_length=100, choices=Payments_methods)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return f'{self.user.email} - {self.card.card_number} - {self.card.card_holder_name} - {self.card.card_expiry} - {self.card.card_cvv}'
-
 
 class MyBooking(models.Model):
 
@@ -94,13 +72,11 @@ class MyBooking(models.Model):
         return f'{self.user.email} - {self.property.name} - {self.check_in} - {self.check_out} - {self.total_guest} - {self.total_price}'
 
 
-    
-
 #  ===================== Property Booking =====================
 class MyBookingPayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
-    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE, null=True)
+    payment_method = models.CharField(max_length=100, null=True)   
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -159,7 +135,7 @@ class MyRenting(models.Model):
 class MyRentingPayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     renting = models.ForeignKey(MyRenting, on_delete=models.CASCADE)
-    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE, null=True)
+    payment_method = models.CharField(max_length=100, null=True)   
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -214,7 +190,7 @@ class MyPropertyPurchase(models.Model):
 class MyPropertyPurchasePayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     property_purchase = models.ForeignKey(MyPropertyPurchase, on_delete=models.CASCADE)
-    payment_method = models.ForeignKey(PaymentMethod, on_delete=models.CASCADE, null=True)
+    payment_method =     payment_method = models.CharField(max_length=100, null=True)   
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

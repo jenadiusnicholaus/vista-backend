@@ -24,6 +24,7 @@ admin.site.register(MyPropertyPurchase)
 admin.site.register(MyPropertyPurchasePayment)
 admin.site.register(MyPropertyPurchaseStatus)
 admin.site.register(MyPropertyPurchasePaymentStatus)
+admin.site.register(MyMobileMoneyPaymentinfos)
 
 
 

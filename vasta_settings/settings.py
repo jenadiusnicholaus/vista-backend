@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'social_django',
     'drf_social_oauth2',
     "user_data",
+    "host_data",
     "property",
 
 ]
@@ -133,8 +134,6 @@ REST_FRAMEWORK = {
         'rest_framework_simplejwt.authentication.JWTAuthentication',
         'oauth2_provider.contrib.rest_framework.OAuth2Authentication',  # django-oauth-toolkit >= 1.0.0
         'drf_social_oauth2.authentication.SocialAuthentication',
-    
-        
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.AllowAny',  # Or another default permission

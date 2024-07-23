@@ -2,6 +2,8 @@ from django.db import models
 from django.conf import settings
 from django.contrib.auth import get_user_model
 
+from host_data.models import PropertyHost
+
 
 
 User = get_user_model()
@@ -19,28 +21,7 @@ class Category(models.Model):
     def __str__(self):
         return self.name
     
-
-class PropertyHost(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    property_count = models.IntegerField(default=0)
-    is_verified = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.user.email
-    
-class PropertyHostVerification(models.Model):
-    host = models.ForeignKey(PropertyHost, on_delete=models.CASCADE, related_name='host_verification')
-    document = models.FileField(upload_to='host_verification/', null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    def __str__(self):
-        return self.host.user.email
-    
-
-    
+  
 class SupportedGeoRegions(models.Model):
     region_name = models.CharField(max_length=100, unique=True)
     slug = models.SlugField(max_length=100, unique=True)

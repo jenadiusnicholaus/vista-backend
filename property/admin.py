@@ -1,6 +1,6 @@
 from django.contrib import admin
-from . models import  (Property, PropertyAmenity,PropertyFacility , PropertyImages, PropertyHost, Category, PropertyReview, SupportedGeoRegions, DeliverGeoRegion,PropertyHostVerification, PropertyHostCancelationPolicy,PropertyRules, PropertyRentingRequirements, PropertyRentingDurationOptions)
-
+from . models import  (Property, PropertyAmenity,PropertyFacility , PropertyImages, PropertyHost, Category, PropertyReview, SupportedGeoRegions, DeliverGeoRegion, PropertyHostCancelationPolicy,PropertyRules, PropertyRentingRequirements, PropertyRentingDurationOptions)
+from host_data.models import PropertyHostVerification
 class PropertyAdmin(admin.ModelAdmin):
     list_display = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
     search_fields = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
