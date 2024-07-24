@@ -33,19 +33,20 @@ class MyAddress(models.Model):
     
 class MyPaymentCard(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    card_number = models.CharField(max_length=100)
+    account_number = models.CharField(max_length=100, unique=True)
+    bank_name = models.CharField(max_length=100, null=True)
     card_holder_name = models.CharField(max_length=100)
-    card_expiry = models.CharField(max_length=100)
-    card_cvv = models.CharField(max_length=100)
+    card_expiry = models.CharField(max_length=100, null=True, blank=True)
+    card_cvv = models.CharField(max_length=100, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f'{self.user.email} - {self.card_number} - {self.card_holder_name} - {self.card_expiry} - {self.card_cvv}'
+        return f'{self.user.email} - {self.account_number} - {self.card_holder_name} - {self.card_expiry} - {self.card_cvv}'
 
 class MyMobileMoneyPaymentinfos(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    mobile_number = models.CharField(max_length=100)
+    mobile_number = models.CharField(max_length=100, )
     mobile_holder_name = models.CharField(max_length=100)
     mobile_network = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -76,8 +77,8 @@ class MyBooking(models.Model):
 class MyBookingPayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
-    payment_method = models.CharField(max_length=100, null=True)   
-    total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    payment_method = models.CharField(max_length=100, null=True)
+    transaction_id = models.CharField(max_length=100, null=True)    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -168,7 +169,6 @@ class MyRentingPaymentStatus(models.Model):
     canceled_at = models.DateTimeField(null=True, blank=True)
     to_be_refunded = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
-
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):

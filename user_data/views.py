@@ -2,9 +2,11 @@ from django.contrib.auth import get_user_model
 from rest_framework import viewsets, status 
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, AllowAny
+from host_data.serializers import PropertyHostCancelationPolicySerializer
+from property.models import Property
 from property.paginators import CustomPageNumberPagination
-from user_data.models import MyFavoriteProperty
-from user_data.serializers import CreateMyFavoritePropertySerializers, GetMyFavoritePropertySerializers, UserProfileSerializer
+from user_data.models import MyAddress, MyBooking, MyFavoriteProperty, MyMobileMoneyPaymentinfos, MyPaymentCard
+from user_data.serializers import  CreateMyFavoritePropertySerializers, MyAddressSerializers, MyBookingSerializers, GetMyFavoritePropertySerializers, MyMobileMoneyPaymentinfosSerializers, MyPaymentCardSerializers, UserProfileSerializer
 import logging  as logger 
 
 User = get_user_model()
@@ -92,8 +94,344 @@ class MyFavoritePropertyViewsSet(viewsets.ModelViewSet):
                     'data': serializers.errors
                 },
                  status=status.HTTP_400_BAD_REQUEST)
+        
+
+class MybookingInforsViewSet(viewsets.ModelViewSet):
+    queryset = MyBooking.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = MyBookingSerializers
+
+ 
+   
+    def list(self, request, *args, **kwargs):
+        try:
+            # Assuming `request.user` is the way to get the current user. Adjust as necessary.
+            user_specific_queryset = self.queryset.filter(user=request.user).latest('created_at')
+            serializer = self.get_serializer(user_specific_queryset)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except self.queryset.model.DoesNotExist:  
+            return Response({'message': 'No booking information found for the user.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    def create(self, request, *args, **kwargs): 
+        user = request.user
+        check_in = request.data.get('check_in', None)
+        check_out = request.data.get('check_out', None)
+        total_guest = request.data.get('total_guest', None)
+        total_price = request.data.get('total_price', None)
+        adult = request.data.get('adult', None)
+        children = request.data.get('children', None)
+        serializers = self.get_serializer(data={
+            'user': user.id,
+            "property": request.query_params.get('property_id', None),  
+            'check_in': check_in,
+            'check_out': check_out,
+            'total_guest': int(adult) + int(children),
+            'total_price': total_price,
+            'adult': adult,
+            'children': children
+        })
+        if serializers.is_valid():
+            serializers.save()
+            return Response(
+                {
+                    'message': 'Booking information added successfully.',
+                }, status=status.HTTP_201_CREATED)
+        else: 
+            
+            return Response(
+                {
+                    'message': 'Booking information not added.',
+                    'data': serializers.errors
+                },
+                 status=status.HTTP_400_BAD_REQUEST)
 
 
-       
+    def patch(self, request):
+        try:
+            # Assuming you get booking_id from somewhere, e.g., from the request
+            booking_id = request.query_params.get('booking_info_id', None)
+            booking_info = MyBooking.objects.get(id=booking_id)
+            check_in = request.data.get('check_in', None)
+            check_out = request.data.get('check_out', None)
+            total_guest = request.data.get('total_guest', None)
+            total_price = request.data.get('total_price', None)
+            adult = request.data.get('adult', None)
+            children = request.data.get('children', None)
+            
+            if request.user == booking_info.user:  # Assuming the booking has a user field for authorization
+                serializer = self.get_serializer(booking_info, data={
+                    'check_in': check_in,
+                    'check_out': check_out,
+                    'total_guest': int(adult) + int(children),
+                    'total_price': total_price,
+                    'adult': adult,
+                    'children': children
+                
+                }, partial=True)
+
+
+                if serializer.is_valid():
+                    serializer.save()
+                    # cancelation_serializer.save()
+                    return Response({'message': 'Booking information updated successfully.'}, status=status.HTTP_200_OK)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'You are not authorized to update this booking information.'}, status=status.HTTP_403_FORBIDDEN)
+        except MyBooking.DoesNotExist:
+            return Response({'message': 'Booking information not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            print(e)
+            return Response({'message': 'An error occurred.', 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
+
+        
+class MyBookingBankPaymentDetailsViewSet(viewsets.ModelViewSet):
+    queryset = MyPaymentCard.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = MyPaymentCardSerializers
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        card_number = request.data.get('account_number', None)
+        card_holder_name = request.data.get('card_holder_name', None)
+        card_expiry = request.data.get('card_expiry', None)
+        card_cvv = request.data.get('card_cvv', None)
+        bank_name = request.data.get('bank_name', None)
+
+
+        serializers = self.get_serializer(data={
+            'user': user.id,
+            'account_number': card_number,
+            'card_holder_name': card_holder_name,
+            'card_expiry': card_expiry,
+            'card_cvv': card_cvv,
+            'bank_name': bank_name
+        })
+        if serializers.is_valid():
+            serializers.save()
+            return Response(
+                {
+                    'message': 'Payment card details added successfully.',
+                }, status=status.HTTP_201_CREATED)
+
+        else:
+            return Response(
+                {
+                    'message': 'Payment card details not added.',
+                    'data': serializers.errors
+                },
+                 status=status.HTTP_400_BAD_REQUEST)  
+
+
+    
+    def patch(self, request):
+        try:
+            # Assuming you get card_id from somewhere, e.g., from the request
+            card_id = request.query_params.get('card_info_id', None)
+            card_info = MyPaymentCard.objects.get(id=card_id)
+            card_number = request.data.get('account_number', None)
+            card_holder_name = request.data.get('card_holder_name', None)
+            card_expiry = request.data.get('card_expiry', None)
+            card_cvv = request.data.get('card_cvv', None)
+            bank_name = request.data.get('bank_name', None)
+            
+            if request.user == card_info.user:  # Assuming the card has a user field for authorization
+                serializer = self.get_serializer(card_info, data={
+                    "bank_name" : bank_name,
+                    'account_number': card_number,
+                    'card_holder_name': card_holder_name,
+                    'card_expiry': card_expiry,
+                    'card_cvv': card_cvv
+                }, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response({'message': 'Payment card details updated successfully.'}, status=status.HTTP_200_OK)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'You are not authorized to update this payment card details.'}, status=status.HTTP_403_FORBIDDEN)
+        except MyPaymentCard.DoesNotExist:
+            return Response({'message': 'Payment card details not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'message': 'An error occurred.', 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)   
+
+    
+class MyMobileMoneyPaymentinfosViewSet(viewsets.ModelViewSet):
+    queryset = MyMobileMoneyPaymentinfos.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = MyMobileMoneyPaymentinfosSerializers
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        mobile_money_number = request.data.get('mobile_money_number', None)
+        mobile_money_name = request.data.get('mobile_money_name', None)
+        mobile_money_network = request.data.get('mobile_money_network', None)
+
+        serializers = self.get_serializer(data={
+                    'user': user.id,
+                    'mobile_number': mobile_money_number,
+                    'mobile_holder_name':  user.first_name + ' ' + user.last_name,
+                    'mobile_network': mobile_money_network
+                })
+        if serializers.is_valid():
+            serializers.save()
+            return Response(
+                {
+                    'message': 'Mobile money payment details added successfully.',
+                }, status=status.HTTP_201_CREATED)
+
+        else:
+            return Response(
+                {
+                    'message': 'Mobile money payment details not added.',
+                    'data': serializers.errors
+                },
+                 status=status.HTTP_400_BAD_REQUEST)  
+
+
+    
+    def patch(self, request, *args, **kwargs):
+        try:
+            # Assuming you get mobile_money_id from somewhere, e.g., from the request
+            mobile_money_id = request.query_params.get('mobile_money_id', None)
+            mobile_money_info = MyMobileMoneyPaymentinfos.objects.get(id=mobile_money_id)
+            mobile_money_number = request.data.get('mobile_money_number', None)
+            mobile_money_name = request.data.get('mobile_money_name', None)
+            mobile_money_network = request.data.get('mobile_money_network', None)
+            user = request.user
+            
+            if request.user == mobile_money_info.user:  # Assuming the mobile money has a user field for authorization
+                serializer = self.get_serializer(mobile_money_info, data={
+                    'mobile_number': mobile_money_number,
+                    'mobile_holder_name':  user.first_name + ' ' + user.last_name,
+                    'mobile_network': mobile_money_network
+                }, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response({'message': 'Mobile money payment details updated successfully.'}, status=status.HTTP_200_OK)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'You are not authorized to update this mobile money payment details.'}, status=status.HTTP_403_FORBIDDEN)
+        except MyMobileMoneyPaymentinfos.DoesNotExist:
+            return Response({'message': 'Mobile money payment   details not found.'}, status=status.HTTP_404_NOT_FOUND)  
+        
+class MyAddressViewSet(viewsets.ModelViewSet):
+    queryset = MyAddress.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = MyAddressSerializers
+
+
+    def create(self, request, *args, **kwargs):
+        user = request.user
+        address = request.data.get('address', None)
+        city = request.data.get('city', None)
+        state = request.data.get('state', None)
+        country = request.data.get('country', None)
+        latitude = request.data.get('latitude', None)
+        longitude = request.data.get('longitude', None)
+
+        serializers = self.get_serializer(data={
+                    'user': user.id,
+                    'address': address,
+                    'city': city,
+                    'state': state,
+                    'country': country,
+                    'latitude': latitude,
+                    'longitude': longitude
+                })
+        if serializers.is_valid():
+            serializers.save()
+            return Response(
+                {
+                    'message': 'Address added successfully.',
+                }, status=status.HTTP_201_CREATED)
+
+        else:
+            return Response(
+                {
+                    'message': 'Address not added.',
+                    'data': serializers.errors
+                },
+                 status=status.HTTP_400_BAD_REQUEST)
+        
+    def patch(self, request, *args, **kwargs):
+        try:
+            # Assuming you get address_id from somewhere, e.g., from the request
+            address_id = request.query_params.get('address_id', None)
+            address_info = MyAddress.objects.get(id=address_id)
+            address = request.data.get('address', None)
+            city = request.data.get('city', None)
+            state = request.data.get('state', None)
+            country = request.data.get('country', None)
+            latitude = request.data.get('latitude', None)
+            longitude = request.data.get('longitude', None)
+            
+            if request.user == address_info.user:  # Assuming the address has a user field for authorization
+                serializer = self.get_serializer(address_info, data={
+                    'address': address,
+                    'city': city,
+                    'state': state,
+                    'country': country,
+                    'latitude': latitude,
+                    'longitude': longitude
+                }, partial=True)
+                if serializer.is_valid():
+                    serializer.save()
+                    return Response({'message': 'Address updated successfully.'}, status=status.HTTP_200_OK)
+                else:
+                    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response({'message': 'You are not authorized to update this address.'}, status=status.HTTP_403_FORBIDDEN)
+        except MyAddress.DoesNotExist:
+            return Response({'message': 'Address not found.'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({'message': 'An error occurred.', 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+class ConfirmBookingView(viewsets.ModelViewSet):
+    """
+    1. Get booking information
+        - check_in
+        - check_out
+        - total_guest
+        - total_price
+        - adult
+        - children  
+
+    2. Get payment information
+        for mobile money    
+        - accountNumber
+        - amount
+        - currency(TZS)
+        - externalId
+        - provider
+    
+
+    3. send payment request to payment gateway
+        - get payment status
+        - get payment message
+        - get payment reference_id
+        - get payment transaction_id
+        - get payment transaction_status
+
+
+    4. Once payment is successful UPdate or create MyBookingPayment, MyBookingStatus, MyBookingPaymentStatus Table
+        - save booking information
+        - save payment information
+        - save payment status
+        - save booking status
+        - save payment reference_id
+        - save payment transaction_id
+        - save payment transaction_status
+        - save payment message
+    
+    5. Return success message
+     else return error message  
+
+    """
+
+    
+        
+  

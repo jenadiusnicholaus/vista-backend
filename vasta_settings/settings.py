@@ -165,7 +165,7 @@ SITE_ID = 1
 
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=5),
+    "ACCESS_TOKEN_LIFETIME":  timedelta(days=1),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": False,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -208,8 +208,8 @@ SIMPLE_JWT = {
 # https://docs.djangoproject.com/en/4.1/topics/i18n/
 
 LANGUAGE_CODE = 'en-us'
-
-TIME_ZONE = 'UTC'
+# // tanzania time zone
+TIME_ZONE = 'Africa/Dar_es_Salaam'
 
 USE_I18N = True
 

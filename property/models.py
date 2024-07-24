@@ -113,8 +113,8 @@ class Property(models.Model):
         return self.name
     
 class PropertyHostCancelationPolicy(models.Model):
-    property = models.OneToOneField(Property, on_delete=models.CASCADE, related_name='cancelation_policy')
-    host = models.ForeignKey(PropertyHost, on_delete=models.CASCADE, related_name='host_cancelation_policy')
+    # property = models.OneToOneField(Property, on_delete=models.CASCADE, related_name='cancelation_policy')
+    # host = models.ForeignKey(PropertyHost, on_delete=models.CASCADE, related_name='host_cancelation_policy')
     title = models.CharField(max_length=100, null=True, blank=True) 
     policy = models.TextField()
     published = models.BooleanField(default=True)
@@ -122,7 +122,7 @@ class PropertyHostCancelationPolicy(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return self.host.user.email
+        return self.title   
     
 class PropertyRules(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE, related_name='renting_rules')

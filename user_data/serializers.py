@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 from authentication.serializers import UserSerializer
 from property.serializers import PropertySerializers
-from user_data.models import MyFavoriteProperty
+from user_data.models import MyAddress, MyBooking, MyFavoriteProperty, MyMobileMoneyPaymentinfos, MyPaymentCard
 
 User = get_user_model()
 
@@ -47,5 +47,132 @@ class CreateMyFavoritePropertySerializers(serializers.ModelSerializer):
     class Meta:
         model = MyFavoriteProperty
         fields = '__all__'
+
+class MyAddressSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = MyAddress
+        fields = '__all__'
+
+class MyPaymentCardSerializers(serializers.ModelSerializer):
+  
+    class Meta:
+        model = MyPaymentCard
+        fields = [
+            'id',   
+            'account_number',
+            'bank_name',
+            'card_holder_name',
+            'card_expiry',
+            'card_cvv',
+            'created_at',
+            'updated_at',
+            'user'
+        ]
+
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'created_at': {'read_only': True},
+            # not required  
+            'card_cvv': {'required': False},
+            'card_expiry': {'required': False},
+          
+        }
+
+class MyMobileMoneyPaymentinfosSerializers(serializers.ModelSerializer):
+ 
+    class Meta:
+        model = MyMobileMoneyPaymentinfos
+        fields = [
+            'id',
+            'mobile_number',
+            'mobile_holder_name',
+            'mobile_network',
+            'created_at',
+            'updated_at',
+            'user'
+
+            
+        ]
+
+        extra_kwargs = {    
+            'id': {'read_only': True},
+            'created_at': {'read_only': True},
+            # not required  
+            'mobile_holder_name': {'required': False},
+            'mobile_network': {'required': False},
+        }
+
+
+
+class MyBookingSerializers(serializers.ModelSerializer):
+    my_address = serializers.SerializerMethodField()
+    my_payment_card = serializers.SerializerMethodField() 
+    my_mw_payment = serializers.SerializerMethodField() 
+
+    class Meta:
+        model = MyBooking
+        fields = [
+            "id",
+            'check_in',
+            'check_out',
+            'total_guest',
+            'total_price',
+            'adult',
+            'children',
+            'my_address',
+            'my_payment_card',
+            'my_mw_payment',
+             
+        ]
+
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'created_at': {'read_only': True}
+        }
+
+    def get_my_address(self, obj):
+        # get address where user = logined user  if exist
+        address= None 
+
+        try:
+            address = MyAddress.objects.filter(user=self.context['request'].user).latest('created_at') 
+        except MyAddress.DoesNotExist:
+            address = None
+
+        # if address is None:
+        #     return None 
+
+        return MyAddressSerializers( address ).data
+    
+    def get_my_payment_card(self, obj):
+        # get address where user = logined user  if exist
+        payment_card= None 
+
+        try:
+            payment_card = MyPaymentCard.objects.filter(user=self.context['request'].user).latest('created_at') 
+        except MyPaymentCard.DoesNotExist:
+            payment_card = None
+
+        # if payment_card is None:
+        #     return None 
+
+        return MyPaymentCardSerializers( payment_card ).data 
+
+    def get_my_mw_payment(self, obj):
+        # get address where user = logined user  if exist
+        mobile_money_payment= None 
+
+        try:
+            mobile_money_payment = MyMobileMoneyPaymentinfos.objects.filter(user=self.context['request'].user).latest('created_at') 
+        except MyMobileMoneyPaymentinfos.DoesNotExist:
+            mobile_money_payment = None
+
+        # if mobile_money_payment is None:
+        #     return None 
+
+        return MyMobileMoneyPaymentinfosSerializers( mobile_money_payment ).data       
+    
+   
+        
 
       
