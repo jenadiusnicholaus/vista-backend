@@ -11,6 +11,8 @@ class MyFavoriteProperty(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
+        verbose_name = '01. My Favorite Property'
+        verbose_name_plural = verbose_name
         unique_together = ('user', 'property')
 
 
@@ -28,6 +30,10 @@ class MyAddress(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = '02. My Address'
+        verbose_name_plural = verbose_name  
+
     def __str__(self):
         return f'{self.user.email} - {self.address} - {self.city} - {self.state} - {self.country}'
     
@@ -41,6 +47,10 @@ class MyPaymentCard(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = '03. My Payment Card'
+        verbose_name_plural = verbose_name  
+
     def __str__(self):
         return f'{self.user.email} - {self.account_number} - {self.card_holder_name} - {self.card_expiry} - {self.card_cvv}'
 
@@ -52,9 +62,14 @@ class MyMobileMoneyPaymentinfos(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = '04. Mobile Money Payment '
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return f'{self.user.email} - {self.mobile_number} - {self.mobile_holder_name} - {self.mobile_network}'
     
+#  ===================== Property Booking =====================
 
 class MyBooking(models.Model):
 
@@ -69,21 +84,13 @@ class MyBooking(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    def __str__(self):
-        return f'{self.user.email} - {self.property.name} - {self.check_in} - {self.check_out} - {self.total_guest} - {self.total_price}'
-
-
-#  ===================== Property Booking =====================
-class MyBookingPayment(models.Model):
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
-    payment_method = models.CharField(max_length=100, null=True)
-    transaction_id = models.CharField(max_length=100, null=True)    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        unique_together = ('user', 'property')
+        verbose_name = '05. My Booking'   
+        verbose_name_plural = verbose_name
 
     def __str__(self):
-        return f'{self.user.email} - {self.booking.property.name} - {self.total_price}'
+        return f'{self.user.email} - {self.property.name} - {self.check_in} - {self.check_out} - {self.total_guest}'
     
 class MyBookingStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -97,11 +104,37 @@ class MyBookingStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('user', 'booking')
+        verbose_name = '06. Booking Status'    
+        verbose_name_plural = verbose_name
+
     def __str__(self):
-        return f'{self.user.email} - {self.booking.property.name} - {self.status}'
+        return f'{self.user.email} - {self.booking.property.name} - {self.booking.check_in} - {self.booking.check_out} - {self.booking.total_guest}'
+
+class MyBookingPayment(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
+    payment_method = models.CharField(max_length=100, null=True)
+    transaction_id = models.CharField(max_length=100, null=True)    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta: 
+        unique_together = ('user', 'booking')
+        verbose_name = '07. Booking Payment'
+        verbose_name_plural = verbose_name
+
+
+    def __str__(self):
+        return f'{self.user.email} - {self.booking.property.name}'
+    
+
     
 class MyBookingPaymentStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE, null=True)
+
     booking_payment = models.ForeignKey(MyBookingPayment, on_delete=models.CASCADE)
     payment_confirmed = models.BooleanField(default=False)
     payment_completed = models.BooleanField(default=False)
@@ -113,8 +146,14 @@ class MyBookingPaymentStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+
+    class Meta:
+        unique_together = ('user', 'booking_payment')
+        verbose_name = '08. Booking Payment Status'
+        verbose_name_plural = verbose_name
+
     def __str__(self):
-        return f'{self.user.email} - {self.booking_payment.booking.property.name} - {self.status}'
+        return f'{self.user.email} - {self.booking_payment.booking.property.name}'  
     
     
 # ===================== Property Renting =====================
@@ -130,8 +169,16 @@ class MyRenting(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta: 
+        unique_together = ('user', 'property')
+        verbose_name = '09. Renting'
+        verbose_name_plural = verbose_name
+
+
+
     def __str__(self):
-        return f'{self.user.email} - {self.property.name} - {self.check_in} - {self.check_out} - {self.total_guest} - {self.total_price}'
+        return f'{self.user.email} - {self.property.name} - {self.check_in} - {self.check_out} - {self.total_family_member}'
+
 
 class MyRentingPayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -140,6 +187,11 @@ class MyRentingPayment(models.Model):
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('user', 'renting')
+        verbose_name = '10. Renting Payment'
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return f'{self.user.email} - {self.renting.property.name} - {self.total_price}'
@@ -156,10 +208,18 @@ class MyRentingStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('user', 'renting') 
+        verbose_name = '11. Renting Status'
+        verbose_name_plural = verbose_name  
+
+
     def __str__(self):
-        return f'{self.user.email} - {self.renting.property.name} - {self.status}'
+        return f'{self.user.email} - {self.renting.property.name}'
 class MyRentingPaymentStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    renting = models.ForeignKey(MyRenting, on_delete=models.CASCADE, null=True)
+
     renting_payment = models.ForeignKey(MyRentingPayment, on_delete=models.CASCADE)
     payment_confirmed = models.BooleanField(default=False)
     payment_completed = models.BooleanField(default=False)
@@ -171,8 +231,13 @@ class MyRentingPaymentStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta: 
+        unique_together = ('user', 'renting_payment') 
+        verbose_name = '12. Payment Status'
+        verbose_name_plural = verbose_name  
+
     def __str__(self):
-        return f'{self.user.email} - {self.renting_payment.renting.property.name} - {self.status}'
+        return f'{self.user.email} - {self.renting_payment.renting.property.name} '
 
     
 # ===================== Property Purchase =====================
@@ -183,8 +248,14 @@ class MyPropertyPurchase(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('user', 'property')
+        verbose_name = '13. Property Purchase'
+        verbose_name_plural = verbose_name
+
+
     def __str__(self):
-        return f'{self.user.email} - {self.property.name} - {self.total_price}'
+        return f'{self.user.email} - {self.property.name}'
     
 
 class MyPropertyPurchasePayment(models.Model):
@@ -195,8 +266,13 @@ class MyPropertyPurchasePayment(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('user', 'property_purchase')
+        verbose_name = '14. Purchase Payment'
+        verbose_name_plural = verbose_name
+
     def __str__(self):
-        return f'{self.user.email} - {self.property_purchase.property.name} - {self.total_price}'
+        return f'{self.user.email} - {self.property_purchase.property.name}'
     
 class MyPropertyPurchaseStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
@@ -210,11 +286,17 @@ class MyPropertyPurchaseStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('user', 'property_purchase')
+        verbose_name = '15. Purchase Status'
+        verbose_name_plural = verbose_name
+
     def __str__(self):
-        return f'{self.user.email} - {self.property_purchase.property.name} - {self.status}'
+        return f'{self.user.email} - {self.property_purchase.property.name} '
     
 class MyPropertyPurchasePaymentStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    property_purchase = models.ForeignKey(MyPropertyPurchase, on_delete=models.CASCADE, null=True)
     property_purchase_payment = models.ForeignKey(MyPropertyPurchasePayment, on_delete=models.CASCADE)
     confirmed = models.BooleanField(default=False)
     completed = models.BooleanField(default=False)
@@ -226,7 +308,12 @@ class MyPropertyPurchasePaymentStatus(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        unique_together = ('user', 'property_purchase_payment')
+        verbose_name = '16. Purchase Payment Status'
+        verbose_name_plural = verbose_name
+
     def __str__(self):
-        return f'{self.user.email} - {self.property_purchase_payment.property_purchase.property.name} - {self.status}'
+        return f'{self.user.email} - {self.property_purchase_payment.property_purchase.property.name} '
     
 

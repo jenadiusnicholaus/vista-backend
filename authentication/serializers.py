@@ -5,6 +5,8 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
 
+from authentication.models import AzamPayAuthToken
+
 
 
 User = get_user_model()
@@ -93,6 +95,22 @@ class ResetPasswordConfirmSerializer(serializers.Serializer):
     confirm_password = serializers.CharField()
     token = serializers.CharField()
 
+class AzamPayAuthSerializer(serializers.ModelSerializer):
 
+
+    class Meta: 
+        model = AzamPayAuthToken
+        fields = [
+            'access_token',
+            'refresh_token',
+            'token_type',
+            'expires_in',
+            'created_at',
+            'updated_at'
+        ]
+        extra_kwargs = {
+            'created_at': {'read_only': True},
+            'updated_at': {'read_only': True}
+        }
 
 

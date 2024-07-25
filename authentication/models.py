@@ -106,3 +106,14 @@ class VerificationCode(models.Model):
 
     def __str__(self):
         return self.user.email
+    
+
+class AzamPayAuthToken(models.Model):
+    access_token = models.TextField(null=True, blank=True)
+    refresh_token = models.TextField( null=True, blank=True)
+    token_type = models.CharField(max_length=255, default='Bearer', null=True, blank=True)
+    expires_in = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+  

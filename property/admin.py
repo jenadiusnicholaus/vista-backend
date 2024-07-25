@@ -1,11 +1,47 @@
 from django.contrib import admin
 from . models import  (Property, PropertyAmenity,PropertyFacility , PropertyImages, PropertyHost, Category, PropertyReview, SupportedGeoRegions, DeliverGeoRegion, PropertyHostCancelationPolicy,PropertyRules, PropertyRentingRequirements, PropertyRentingDurationOptions)
 from host_data.models import PropertyHostVerification
+
+class PropertyInline(admin.TabularInline):
+    model = Property
+    extra = 0
+
+
+class PropertyRulesInline(admin.TabularInline):
+    model = PropertyRules
+    extra = 0
+
+class PropertyRentingRequirementsInline(admin.TabularInline):
+    model = PropertyRentingRequirements
+    extra = 0
+
+class PropertyAmenityInline(admin.TabularInline):
+    model = PropertyAmenity
+    extra = 0
+
+class PropertyFacilityInline(admin.TabularInline):
+
+    model = PropertyFacility
+    extra = 0
+
+class PropertyImagesInline(admin.TabularInline):
+    model = PropertyImages
+    extra = 0
+
+class PropertyReviewInline(admin.TabularInline):
+
+    model = PropertyReview
+    extra = 0
+
+
+
+
 class PropertyAdmin(admin.ModelAdmin):
     list_display = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
     search_fields = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
     list_filter = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
     list_per_page = 10
+    inlines = [ PropertyRulesInline, PropertyRentingRequirementsInline, PropertyAmenityInline, PropertyFacilityInline, PropertyImagesInline, PropertyReviewInline]
 
 class PropertyAmenityAdmin(admin.ModelAdmin):
     list_display = ['property', 'name']
@@ -40,6 +76,8 @@ class CategoryAdmin(admin.ModelAdmin):
     search_fields = ['name', 'description']
     list_filter = ['name', 'description']
     list_per_page = 10
+    inlines = [PropertyInline]
+
 class PropertyReviewAdmin(admin.ModelAdmin):
     list_display = ['property', 'user', 'rating', 'comment']
     search_fields = ['property', 'user', 'rating', 'comment']
@@ -69,15 +107,16 @@ class PropertyRentingDurationOptionsAdmin(admin.ModelAdmin):
     list_per_page = 10
 
 
-admin.site.register(PropertyHostVerification)
+
+
 admin.site.register(PropertyRentingRequirements)
 admin.site.register(PropertyHostCancelationPolicy)
-admin.site.register(PropertyRules)  
-admin.site.register(PropertyAmenity, PropertyAmenityAdmin)
-admin.site.register(PropertyFacility, PropertyFacilityAdmin)
-admin.site.register(PropertyImages, PropertyImagesAdmin)
+# admin.site.register(PropertyRules)  
+# admin.site.register(PropertyAmenity, PropertyAmenityAdmin)
+# admin.site.register(PropertyFacility, PropertyFacilityAdmin)
+# admin.site.register(PropertyImages, PropertyImagesAdmin)
 admin.site.register(PropertyHost, PropertyhostAdmin)
-admin.site.register(PropertyReview, PropertyReviewAdmin)
+# admin.site.register(PropertyReview, PropertyReviewAdmin)
 admin.site.register(Category, CategoryAdmin)
 admin.site.register(Property, PropertyAdmin)
 admin.site.register(SupportedGeoRegions, SupportedGeoRegionsAdmin)

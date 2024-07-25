@@ -33,6 +33,8 @@ ALLOWED_HOSTS = ["192.168.1.181", "127.0.0.1", "localhost", "192.168.124.42", "1
 # Application definition
 
 INSTALLED_APPS = [
+    "admin_interface",
+    "colorfield",
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -52,6 +54,8 @@ INSTALLED_APPS = [
     "property",
 
 ]
+X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
+SILENCED_SYSTEM_CHECKS = ["security.W019"]  # allows you to use modals insated of popups
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -218,11 +222,14 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
-
+STATIC_ROOT = BASE_DIR / 'static'
 STATIC_URL = 'static/'
 # STATICFILES_DIRS = [
 #     BASE_DIR / "static",
 # ]   
+# STATICFILES_DIRS = [
+#     BASE_DIR / "static",
+# ]
 MADIA_URL = '/media/'   
 MEDIA_ROOT = BASE_DIR / 'media'
 
@@ -244,5 +251,16 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='no_password')
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
+
+
+
+# AZAM PAY
+AZAM_PAY_AUTH = "https://authenticator-sandbox.azampay.co.tz"
+AZAM_PAY_CHECKOUT_URL = "https://sandbox.azampay.co.tz"
+AZAM_PAY_APP_NAME = "eshop"
+AZAM_PAY_CLIENT_ID = "a6e6d2df-bd53-4fa4-a858-f0083b5e8ff0"
+AZAM_PAY_CLIENT_SECRET = "VSJh785RIa1t+JD6C3PMlZvHfTBeiXWPJ0Ms72sBjscrMLF3jC+oeR8NWDpLqj1xmAOg5BifZwW30FfLzC9anQHxMugYfjX3FSdDvPqKzEJk7vWZz2/TExHZei8TlUF0mI6bcOFOm79doqc/hum8bDxGMdudjM4crmjPQ+1wsp8HGZXdHEW5w6oLi49ZI8n2iHmRXjArixf2kALTtYxwvQkHt9NuZxkS+9RJZJ6T+QLzR5HmiqVbLTh34rV21scZJNYu74BX854Qt1rVtkrsTtSc3XfcXlb5m8emrWjaEihn8TvSK8lE41PvUFa57Si5+QxKpFWM7YF+qqM9pGb24ARigPKc10fgUT8TtzGcPARyPvvDNGwYOvsyhc9dYM1kZQJTvnJdP3HXBzPOneR9NAfwrUWygepE2X455J59bTPHkXiQWbYz06rEv7FdnpkpQ+WqGiy9o1BlMhQ8oBhZgZxeiJqyts1j9HLzQ6jEvR+4U4cnRKVj0ZT/+TMATRGrXd7tWxToPfccagXNOs8tT2Q8DX1cxH+aqcSIXfuu958wEKmWQi6t7VbRf/SOIX2A2K15MpIsTwnznGeht7BPLxrZ5u1yUUjG/KuXsemfAHqonJn6hgejEEtuguDF7RPnuZFLwX6o/VoVzHdfyHpE6KBsLyNQmLSY8m0EwaptQp8="
+TOKEN = "5c201d0e-c623-478f-a1ee-74cc02df8ca5"
+
 
 

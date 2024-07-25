@@ -5,8 +5,12 @@ from django.contrib import admin
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .forms import CustomUserChangeForm, CustomUserCreationForm
-from .models import CustomUser, VerificationCode  
+from .models import CustomUser, VerificationCode  , AzamPayAuthToken
 
+
+class VerificationCodeInline(admin.TabularInline):
+    model = VerificationCode
+    extra = 1
 
 
 
@@ -77,6 +81,7 @@ class CustomUserAdmin(UserAdmin):
     search_fields = ("email",)
     ordering = ("email",)
     list_display_links = ("email","phone_number")
+    inlines = [VerificationCodeInline]
 
 
 class VerificationCodeAdmin(admin.ModelAdmin):
@@ -84,8 +89,17 @@ class VerificationCodeAdmin(admin.ModelAdmin):
     search_fields = ("user", "code")
     ordering = ("created_at",)
 
+class AzamPayAuthTokenAdmin(admin.ModelAdmin):
+    list_display = ( "access_token", "expires_in",
+                    "created_at", "updated_at") 
+
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(VerificationCode, VerificationCodeAdmin)
+admin.site.register(AzamPayAuthToken, AzamPayAuthTokenAdmin)    
+admin.site.site_header = "Vista Admin Dashboard"
+admin.site.site_title = "Vista Admin Dashboard"
+admin.site.index_title = "vista Welcome to Admin Dashboard"
+
 
 
     

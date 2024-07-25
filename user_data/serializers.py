@@ -4,7 +4,7 @@ from django.core.exceptions import ValidationError
 
 from authentication.serializers import UserSerializer
 from property.serializers import PropertySerializers
-from user_data.models import MyAddress, MyBooking, MyFavoriteProperty, MyMobileMoneyPaymentinfos, MyPaymentCard
+from user_data.models import MyAddress, MyBooking, MyBookingPayment, MyBookingPaymentStatus, MyBookingStatus, MyFavoriteProperty, MyMobileMoneyPaymentinfos, MyPaymentCard
 
 User = get_user_model()
 
@@ -170,9 +170,167 @@ class MyBookingSerializers(serializers.ModelSerializer):
         # if mobile_money_payment is None:
         #     return None 
 
-        return MyMobileMoneyPaymentinfosSerializers( mobile_money_payment ).data       
+        return MyMobileMoneyPaymentinfosSerializers( mobile_money_payment ).data 
+
+
+# =============== // user for saving booing information=============
+class MyBookingPaymentSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = MyBookingPayment
+        fields = [
+            "id",
+            'user',
+            'booking',
+            'payment_method',
+            'transaction_id',
+            'created_at',
+            'updated_at'
+        ]
+
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'created_at': {'read_only': True}
+        }
+
+class MyBookingPaymentStatusSerializers(serializers.ModelSerializer):
     
+    class Meta:
+        model = MyBookingPaymentStatus
+        fields = [
+            "id",
+            'user',
+            "booking",
+            'booking_payment',
+            'payment_confirmed',
+            'payment_completed',
+            'payment_canceled',
+            'confirmed_at',
+            'completed_at',
+            'canceled_at',
+            'to_be_refunded',
+            'created_at',
+            'updated_at'
+        ]
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'payment_confirmed': {'required': True}
+        }
+        
+    
+class MyBookingStatusSerializers(serializers.ModelSerializer):
+
+  
+    class Meta:
+        model = MyBookingStatus
+        fields = [
+            "id",
+            'user',
+            'booking',
+            'confirmed',
+            'completed',
+            'canceled',
+            'confirmed_at',
+            'completed_at',
+            'canceled_at',
+            'created_at',
+            'updated_at'
+        ]
+
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'status': {'required': True}
+        } 
+
+    # ================ end =======================
+
+# =============== // user for getting booking information=============
+
+class GetMyBookingDetailsSerializers(serializers.ModelSerializer):
+    # user = UserSerializer()
+    class Meta:
+        model = MyBooking
+        fields = [
+            "id",
+            'check_in', 
+            'check_out',    
+            'total_guest',
+            'total_price',  
+            'adult',
+            'children',
+            'created_at',
+            'updated_at'    
+        ]
+
+
+class GetMyBookingPaymentSerializers(serializers.ModelSerializer):
+    booking_payment_status = serializers.SerializerMethodField()
    
+    class Meta:
+        model = MyBookingPayment
+        fields = [
+            "id",
+            'booking',
+            'payment_method',
+            'transaction_id',
+            'created_at',
+            'updated_at',
+            'booking_payment_status'
+        ]   
+
+    def get_booking_payment_status(self, obj):
+        # get address where user = logined user  if exist
+        booking_payment_status= None 
+
+        try:
+            booking_payment_status = MyBookingPaymentStatus.objects.filter(booking_payment__id = obj.id).latest('created_at') 
+        except MyBookingPaymentStatus.DoesNotExist:
+            booking_payment_status = None
+
+        # if booking_payment_status is None:
+        #     return None 
+
+        return MyBookingPaymentStatusSerializers( booking_payment_status ).data
+
+  
+
+class GetMyBookingSerializers(serializers.ModelSerializer):
+    user = UserSerializer()
+    booking =GetMyBookingDetailsSerializers()
+    booking_payment = serializers.SerializerMethodField()
+   
+    class Meta:
+        model = MyBookingStatus
+        fields = [
+            "id",
+            'user',
+            'booking',
+            'confirmed',
+            'completed',
+            'canceled',
+            'confirmed_at',
+            'completed_at',
+            'canceled_at',
+            'created_at',
+            'updated_at',
+            'booking_payment'   
+        ]
+
+    def get_booking_payment(self, obj):
+        # get address where user = logined user  if exist
+        booking_payment= None 
+
+        try:
+            booking_payment = MyBookingPayment.objects.filter(user=self.context['request'].user).latest('created_at') 
+        except MyBookingPayment.DoesNotExist:
+            booking_payment = None
+
+        # if booking_payment is None:
+        #     return None 
+
+        return GetMyBookingPaymentSerializers( booking_payment ).data
+    
+# =============== END=============
+
         
 
       

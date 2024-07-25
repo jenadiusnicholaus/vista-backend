@@ -18,6 +18,10 @@ class Category(models.Model):
     published = models.BooleanField(default=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta: 
+        verbose_name = '01. Category'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.name
     
@@ -34,6 +38,10 @@ class SupportedGeoRegions(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = '02. Supported Geo Region'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.region_name
     
@@ -48,6 +56,10 @@ class DeliverGeoRegion(models.Model):
     city = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = '03. Deliver Geo Region'   
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.region_name
@@ -109,6 +121,10 @@ class Property(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta: 
+        verbose_name = '04. Properties'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.name
     
@@ -121,6 +137,10 @@ class PropertyHostCancelationPolicy(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = '05. Cancelation Policy'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.title   
     
@@ -129,6 +149,10 @@ class PropertyRules(models.Model):
     rule = models.CharField(max_length=100) 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = '06. Property Rules'   
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.property.name
@@ -140,6 +164,10 @@ class PropertyRentingRequirements(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = '07. Renting Requirements'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.property.name
     
@@ -150,6 +178,10 @@ class PropertyImages(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta: 
+        verbose_name = '08. Property Images'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.property.name
     
@@ -159,6 +191,9 @@ class PropertyFacility(models.Model):
     facility = models.CharField(max_length=100)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    class Meta:
+        verbose_name = '09. Property Facility'   
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return self.facility
@@ -171,6 +206,10 @@ class PropertyAmenity(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        verbose_name = '10. Property Amenity'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.name
     
@@ -181,8 +220,12 @@ class PropertyReview(models.Model):
     comment = models.TextField()
     date = models.DateTimeField(auto_now_add=True)
 
+
+
     class Meta:
         unique_together = ('property', 'user')
+        verbose_name = '11. Property Review'
+        verbose_name_plural = verbose_name
 
 
     def __str__(self):
@@ -216,5 +259,14 @@ class PropertyRentingDurationOptions(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+
+
+
+
+        verbose_name = '12. Renting Duration Options'   
+        verbose_name_plural = verbose_name
+
     def __str__(self):
         return self.property.name
+    
