@@ -16,24 +16,10 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "user_profile_pic", "email", "phone_number"]
+        fields = ["first_name", "last_name", "user_profile_pic", "email", "phone_number", "phone_is_verified"]
         read_only_fields = ['user_profile_pic']
 
-    def validate_email(self, value):
-        # Check if the email is being updated to a value that already exists
-        if User.objects.filter(email=value).exclude(pk=self.instance.pk).exists():
-            raise serializers.ValidationError("This email is already in use.")
-        return value
-
-    def update(self, instance, validated_data):
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-        # Assuming you want to conditionally update the email if it's included
-        if 'email' in validated_data:
-            instance.email = validated_data.get('email')
-        # Handle user_profile_pic if it's not meant to be read-only or is conditionally updated
-        instance.save()
-        return instance
+   
     
 class GetMyFavoritePropertySerializers(serializers.ModelSerializer):
     user = UserSerializer()
@@ -102,12 +88,37 @@ class MyMobileMoneyPaymentinfosSerializers(serializers.ModelSerializer):
             'mobile_network': {'required': False},
         }
 
+class CreateMyBookingSerializers(serializers.ModelSerializer):
+    class Meta:
+        model = MyBooking
+        fields = [
+            "id",
+            "user",
+            'check_in',
+            "property",
+            'check_out',
+            'total_guest',
+            'total_price',
+            'adult',
+            'children',
+            'created_at',
+            'updated_at'
+        ]
+
+        extra_kwargs = {
+            'id': {'read_only': True},
+            'created_at': {'read_only': True}
+        }
+
+    
 
 
-class MyBookingSerializers(serializers.ModelSerializer):
+class GetMyBookingSerializers(serializers.ModelSerializer):
     my_address = serializers.SerializerMethodField()
     my_payment_card = serializers.SerializerMethodField() 
-    my_mw_payment = serializers.SerializerMethodField() 
+    my_mw_payment = serializers.SerializerMethodField()
+    my_booking_status = serializers.SerializerMethodField()  
+    property =  PropertySerializers() 
 
     class Meta:
         model = MyBooking
@@ -122,6 +133,8 @@ class MyBookingSerializers(serializers.ModelSerializer):
             'my_address',
             'my_payment_card',
             'my_mw_payment',
+            'my_booking_status', 
+            "property"       
              
         ]
 
@@ -171,6 +184,22 @@ class MyBookingSerializers(serializers.ModelSerializer):
         #     return None 
 
         return MyMobileMoneyPaymentinfosSerializers( mobile_money_payment ).data 
+    
+    def get_my_booking_status(self, obj):
+        # get address where user = logined user  if exist
+        booking_status= None 
+
+        try:
+            booking_status = MyBookingStatus.objects.filter(user=self.context['request'].user).latest('created_at') 
+        except MyBookingStatus.DoesNotExist:
+            booking_status = None
+
+        # if booking_status is None:
+        #     return None 
+
+        return MyBookingStatusSerializers( booking_status ).data
+    
+
 
 
 # =============== // user for saving booing information=============
@@ -191,6 +220,8 @@ class MyBookingPaymentSerializers(serializers.ModelSerializer):
             'id': {'read_only': True},
             'created_at': {'read_only': True}
         }
+
+    
 
 class MyBookingPaymentStatusSerializers(serializers.ModelSerializer):
     
@@ -246,12 +277,12 @@ class MyBookingStatusSerializers(serializers.ModelSerializer):
 # =============== // user for getting booking information=============
 
 class GetMyBookingDetailsSerializers(serializers.ModelSerializer):
-    # user = UserSerializer()
     class Meta:
         model = MyBooking
         fields = [
             "id",
-            'check_in', 
+            'check_in',
+            "property",
             'check_out',    
             'total_guest',
             'total_price',  
@@ -293,7 +324,7 @@ class GetMyBookingPaymentSerializers(serializers.ModelSerializer):
 
   
 
-class GetMyBookingSerializers(serializers.ModelSerializer):
+class GetMyBookingStatusSerializers(serializers.ModelSerializer):
     user = UserSerializer()
     booking =GetMyBookingDetailsSerializers()
     booking_payment = serializers.SerializerMethodField()

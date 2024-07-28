@@ -8,8 +8,9 @@ from property.models import Property
 from property.paginators import CustomPageNumberPagination
 from user_data.azam_pay_checkout import AzamPayCheckout
 from user_data.azam_res_models import TransactionResponse
+from user_data.global_serializers import PropertyStatusUpdateSerializer
 from user_data.models import MyAddress, MyBooking, MyBookingStatus, MyFavoriteProperty, MyMobileMoneyPaymentinfos, MyPaymentCard
-from user_data.serializers import  CreateMyFavoritePropertySerializers, GetMyBookingSerializers, MyAddressSerializers, MyBookingPaymentSerializers, MyBookingPaymentStatusSerializers, MyBookingSerializers, GetMyFavoritePropertySerializers, MyBookingStatusSerializers, MyMobileMoneyPaymentinfosSerializers, MyPaymentCardSerializers, UserProfileSerializer
+from user_data.booking_serializers import  CreateMyBookingSerializers, CreateMyFavoritePropertySerializers, GetMyBookingSerializers, GetMyBookingStatusSerializers, MyAddressSerializers, MyBookingPaymentSerializers, MyBookingPaymentStatusSerializers,  GetMyFavoritePropertySerializers, MyBookingStatusSerializers, MyMobileMoneyPaymentinfosSerializers, MyPaymentCardSerializers, UserProfileSerializer
 import logging  as logger 
 from django.utils import timezone
 
@@ -103,20 +104,23 @@ class MyFavoritePropertyViewsSet(viewsets.ModelViewSet):
 class MybookingInforsViewSet(viewsets.ModelViewSet):
     queryset = MyBooking.objects.all()
     permission_classes = [IsAuthenticated]
-    serializer_class = MyBookingSerializers
+    serializer_class = GetMyBookingSerializers
 
  
    
     def list(self, request, *args, **kwargs):
+       
         try:
             # Assuming `request.user` is the way to get the current user. Adjust as necessary.
-            user_specific_queryset = self.queryset.filter(user=request.user).latest('created_at')
+            property_id = request.query_params.get('property_id', None)
+            user_specific_queryset = self.queryset.filter(user=request.user, property_id = property_id).latest('created_at')
             serializer = self.get_serializer(user_specific_queryset)
             return Response(serializer.data, status=status.HTTP_200_OK)
         except self.queryset.model.DoesNotExist:  
-            return Response({'message': 'No booking information found for the user.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'message': 'Not Booking, please Add one now.'}, status=status.HTTP_400_BAD_REQUEST)
         
     def create(self, request, *args, **kwargs): 
+        print(request.data)
         user = request.user
         check_in = request.data.get('check_in', None)
         check_out = request.data.get('check_out', None)
@@ -124,7 +128,7 @@ class MybookingInforsViewSet(viewsets.ModelViewSet):
         total_price = request.data.get('total_price', None)
         adult = request.data.get('adult', None)
         children = request.data.get('children', None)
-        serializers = self.get_serializer(data={
+        serializers = CreateMyBookingSerializers(data={
             'user': user.id,
             "property": request.query_params.get('property_id', None),  
             'check_in': check_in,
@@ -397,7 +401,7 @@ class MyAddressViewSet(viewsets.ModelViewSet):
 class ConfirmBookingViewSet(viewsets.ModelViewSet):
     queryset = MyBookingStatus.objects.all()
     permission_classes = [IsAuthenticated]
-    serializer_class = GetMyBookingSerializers
+    serializer_class = GetMyBookingStatusSerializers
 
     """
     1. Get booking information
@@ -444,46 +448,45 @@ class ConfirmBookingViewSet(viewsets.ModelViewSet):
         booking_id = self.request.query_params.get('booking_id', None)
         return self.queryset.get(booking=booking_id)
    
-    def list(self, request, *args, **kwargs):
-        try:
-            instance = self.get_object()
-            serializer = self.get_serializer(instance)
-            return Response(serializer.data)
-        except MyBookingStatus.DoesNotExist:
-            return Response({'message': 'Booking status not found.'}, status=status.HTTP_404_NOT_FOUND)       
-
+    # def list(self, request, *args, **kwargs):
+    #     try:
+    #         instance = self.get_object()
+    #         serializer = self.get_serializer(instance)
+    #         return Response(serializer.data)
+    #     except MyBookingStatus.DoesNotExist:
+    #         return Response({'message': 'Booking status not found.'}, status=status.HTTP_404_NOT_FOUND)       
     def create(self, request, *args, **kwargs):
-        booking_id = self.request.query_params.get('booking_id', None)
-
-        # try:
-        #     booking = self.get_object()
-        # except MyBooking.DoesNotExist:
-        #     return Response({'message': 'Booking not found.'}, status=status.HTTP_404_NOT_FOUND)
-        
+        booking_id = request.query_params.get('booking_id', None)
         user = request.user
         payment_method = request.data.get('payment_method', None)
         accountNumber = request.data.get('accountNumber', None)
         amount = request.data.get('amount', None)
-        
 
+        if not all([booking_id, payment_method, accountNumber, amount]):
+            return Response(
+                {
+                    "message": "Missing required parameters."
+                }, status=status.HTTP_400_BAD_REQUEST
+            )
 
         try:
-            # // get payment gateway authentication
+            # Get payment gateway authentication
             azmpay = AzamPayCheckout(
-                    accountNumber=accountNumber,
-                    amount=amount,
-                    externalId=booking_id,
-                    provider=payment_method,
-                )  
+                accountNumber=accountNumber,
+                amount=amount,
+                externalId=booking_id,
+                provider=payment_method,
+            )
         except Exception as e:
             return Response(
                 {
                     "message": "Failed to authenticate with payment gateway",
                     "data": str(e),
-                }
+                }, status=status.HTTP_400_BAD_REQUEST
             )
+
         try:
-            # // get payment response from payment gateway
+            # Get payment response from payment gateway
             response = azmpay.initCheckout()
             responseModel = TransactionResponse(**json.loads(response))
         except Exception as e:
@@ -491,79 +494,113 @@ class ConfirmBookingViewSet(viewsets.ModelViewSet):
                 {
                     "message": "Error creating checkout",
                     "data": str(e),
-                }
+                }, status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         if not responseModel.success:
+            return Response(
+                {
+                    "message": "Payment failed",
+                    "data": responseModel.message
+                }, status=status.HTTP_400_BAD_REQUEST
+            )
+        else:
+
+        
+            pszls = MyBookingPaymentSerializers(data={
+                'booking': booking_id,
+                'user': user.id,
+                'payment_method': payment_method,
+                'transaction_id': responseModel.transactionId
+            })
+            if pszls.is_valid():
+                pszls.save()
+                pStatusSzs = MyBookingPaymentStatusSerializers(data={
+                    'user': user.id,
+                    'booking_payment': pszls.data['id'],
+                    'payment_confirmed': True,
+                    'payment_completed': False,
+                    "booking": booking_id,
+                    'payment_canceled': False,
+                    'confirmed_at': timezone.now(),
+                    'to_be_refunded': False
+                })
+                if pStatusSzs.is_valid():
+                    pStatusSzs.save()
+                    bookingStatusSzs = MyBookingStatusSerializers(data={
+                        'user': user.id,
+                        'booking': booking_id,
+                        'confirmed': True,
+                        'completed': False,
+                        'canceled': False,
+                        'confirmed_at': timezone.now()
+                    })
+                    if bookingStatusSzs.is_valid():
+                        bookingStatusSzs.save()
+
+                        # final update booked property status
+                        self.update_property_status(booking_id)
+
+                        return Response(
+                            {
+                                'message': 'Booking confirmed successfully.',
+                            }, status=status.HTTP_201_CREATED
+                        )
+                        # // update property status to not available
+                    else:
+                        logger.error(bookingStatusSzs.errors)  
+                        return Response(
+                            {
+                                'message': 'Booking not confirmed.',
+                                'data': bookingStatusSzs.errors
+                            }, status=status.HTTP_400_BAD_REQUEST
+                        )
+                else:
+                    logger.error(pStatusSzs.errors)
+                    return Response(
+                        {
+                            'message': 'Booking not confirmed.',
+                            'data': pStatusSzs.errors
+                        }, status=status.HTTP_400_BAD_REQUEST
+                    )
+            else:
+                logger.error(pszls.errors)
                 return Response(
                     {
-                        "message": "Error creating checkout",
-                        "data": responseModel.message,
-                    }
+                        'message': 'Booking not confirmed.',
+                        'data': pszls.errors
+                    }, status=status.HTTP_400_BAD_REQUEST
                 )
-        # // save booking payment serializers
-        pszls = MyBookingPaymentSerializers(data={
-            'booking':booking_id,
-            'user': user.id,
-            'payment_method': payment_method,
-            'transaction_id': responseModel.transactionId
-        })
-        if pszls.is_valid():
-            pszls.save()
-        else:
-            return Response(
-                {
-                    'message': 'Booking not confirmed.',
-                    'data': pszls.errors
-                },
-                 status=status.HTTP_400_BAD_REQUEST)    
+            
 
-        # // save booking payment status serializers
+    def update_property_status(request, booking_id):
+        try:
+            booking = MyBooking.objects.get(id=booking_id)
+            property_instance = booking.property
+            
+            # Create a serializer instance with the data to be updated
+            serializer = PropertyStatusUpdateSerializer(
+                property_instance, 
+                data={'availability_status': False}, 
+                partial=True
+            )
+            
+            # Validate and save the data
+            if serializer.is_valid():
+                serializer.save()
+                
+            else:
+                return Response(
+                    {"message": "Invalid data.", "errors": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+        except MyBooking.DoesNotExist:
+            return Response(
+                {"message": "Booking not found."},
+                status=status.HTTP_404_NOT_FOUND
+            )
 
-        pStatusSzs = MyBookingPaymentStatusSerializers(data={
-            'user': user.id,
-            'booking_payment': pszls.data['id'],
-            'payment_confirmed': True,
-            'payment_completed': False,
-            "booking": booking_id,
-            'payment_canceled': False,
-             'confirmed_at': timezone.now(),
-            'to_be_refunded': False
-           
-        })
-        if pStatusSzs.is_valid():
-            pStatusSzs.save()
-        else:
-            return Response(
-                {
-                    'message': 'Booking not confirmed.',
-                    'data': pStatusSzs.errors
-                },
-                 status=status.HTTP_400_BAD_REQUEST)
-        # // save booking payment status serializers
-
-        bookingStatusSzs = MyBookingStatusSerializers(data={
-            'user': user.id,
-            'booking':booking_id,
-            'confirmed': True,
-            'completed': False,
-            'canceled': False,
-            'confirmed_at': timezone.now()
-        })
-        if bookingStatusSzs.is_valid():
-            bookingStatusSzs.save()
-            return Response(
-                {
-                    'message': 'Booking confirmed successfully.',
-                },
-                 status=status.HTTP_201_CREATED)    
-        else:
-            return Response(
-                {
-                    'message': 'Booking not confirmed.',
-                    'data': bookingStatusSzs.errors
-                },
-                 status=status.HTTP_400_BAD_REQUEST)
+            
 
 
 

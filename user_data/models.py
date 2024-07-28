@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from property.models import Property
+from property.models import Property, PropertyRentingDurationOptions
 
 User = get_user_model()
 
@@ -11,7 +11,7 @@ class MyFavoriteProperty(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = '01. My Favorite Property'
+        verbose_name = '01. User Favorite Properties'
         verbose_name_plural = verbose_name
         unique_together = ('user', 'property')
 
@@ -31,7 +31,7 @@ class MyAddress(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = '02. My Address'
+        verbose_name = '02. User Addresses'
         verbose_name_plural = verbose_name  
 
     def __str__(self):
@@ -48,7 +48,7 @@ class MyPaymentCard(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = '03. My Payment Card'
+        verbose_name = '03. Users Payment Cards'
         verbose_name_plural = verbose_name  
 
     def __str__(self):
@@ -63,7 +63,7 @@ class MyMobileMoneyPaymentinfos(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        verbose_name = '04. Mobile Money Payment '
+        verbose_name = '04. Mobile Money Payments '
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -85,8 +85,8 @@ class MyBooking(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'property')
-        verbose_name = '05. My Booking'   
+        # unique_together = ('user', 'property')
+        verbose_name = '05. User Bookings'   
         verbose_name_plural = verbose_name
 
     def __str__(self):
@@ -94,7 +94,7 @@ class MyBooking(models.Model):
     
 class MyBookingStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
+    booking = models.OneToOneField(MyBooking, on_delete=models.CASCADE)
     confirmed = models.BooleanField(default=False)
     completed = models.BooleanField(default=False)
     canceled = models.BooleanField(default=False)   
@@ -105,7 +105,7 @@ class MyBookingStatus(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'booking')
+        # unique_together = ('user', 'booking')
         verbose_name = '06. Booking Status'    
         verbose_name_plural = verbose_name
 
@@ -114,14 +114,14 @@ class MyBookingStatus(models.Model):
 
 class MyBookingPayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
+    booking = models.OneToOneField(MyBooking, on_delete=models.CASCADE)
     payment_method = models.CharField(max_length=100, null=True)
     transaction_id = models.CharField(max_length=100, null=True)    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta: 
-        unique_together = ('user', 'booking')
+        # unique_together = ('user', 'booking')
         verbose_name = '07. Booking Payment'
         verbose_name_plural = verbose_name
 
@@ -133,7 +133,7 @@ class MyBookingPayment(models.Model):
     
 class MyBookingPaymentStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE, null=True)
+    booking = models.OneToOneField(MyBooking, on_delete=models.CASCADE, null=True)
 
     booking_payment = models.ForeignKey(MyBookingPayment, on_delete=models.CASCADE)
     payment_confirmed = models.BooleanField(default=False)
@@ -148,7 +148,7 @@ class MyBookingPaymentStatus(models.Model):
 
 
     class Meta:
-        unique_together = ('user', 'booking_payment')
+        # unique_together = ('user', 'booking_payment')
         verbose_name = '08. Booking Payment Status'
         verbose_name_plural = verbose_name
 
@@ -162,6 +162,7 @@ class MyRenting(models.Model):
     property = models.ForeignKey(Property, on_delete=models.CASCADE)
     check_in = models.DateField()
     check_out = models.DateField()
+    renting_duration = models.ForeignKey(PropertyRentingDurationOptions, on_delete=models.CASCADE, null=True)
     total_family_member = models.IntegerField()
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     adult = models.IntegerField()
@@ -171,7 +172,7 @@ class MyRenting(models.Model):
 
     class Meta: 
         unique_together = ('user', 'property')
-        verbose_name = '09. Renting'
+        verbose_name = '09. User Renting'
         verbose_name_plural = verbose_name
 
 
@@ -182,28 +183,33 @@ class MyRenting(models.Model):
 
 class MyRentingPayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    renting = models.ForeignKey(MyRenting, on_delete=models.CASCADE)
-    payment_method = models.CharField(max_length=100, null=True)   
+    renting = models.OneToOneField(MyRenting, on_delete=models.CASCADE)
+    payment_method = models.CharField(max_length=100, null=True)  
+    transaction_id = models.CharField(max_length=100, null=True) 
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'renting')
+       
         verbose_name = '10. Renting Payment'
         verbose_name_plural = verbose_name
 
     def __str__(self):
         return f'{self.user.email} - {self.renting.property.name} - {self.total_price}'
     
-class MyRentingStatus(models.Model):    
+class MyRentingStatus(models.Model): 
+    renting_status =(
+       ('ongoing', 'Ongoing'), 
+         ('completed', 'Completed'), 
+         ('canceled', 'Canceled'), 
+    )
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    renting = models.ForeignKey(MyRenting, on_delete=models.CASCADE)
-    confirmed = models.BooleanField(default=False)
-    completed = models.BooleanField(default=False)
-    canceled = models.BooleanField(default=False)   
+    renting = models.OneToOneField(MyRenting, on_delete=models.CASCADE)
+    renting_request_confirmed = models.BooleanField(default=False)
+    renting_status = models.CharField(max_length=100, choices=renting_status, default='ongoing') 
     confirmed_at = models.DateTimeField(null=True, blank=True)
-    completed_at = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
     canceled_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -211,14 +217,13 @@ class MyRentingStatus(models.Model):
     class Meta:
         unique_together = ('user', 'renting') 
         verbose_name = '11. Renting Status'
-        verbose_name_plural = verbose_name  
-
+        verbose_name_plural = verbose_name
 
     def __str__(self):
         return f'{self.user.email} - {self.renting.property.name}'
 class MyRentingPaymentStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    renting = models.ForeignKey(MyRenting, on_delete=models.CASCADE, null=True)
+    renting = models.OneToOneField(MyRenting, on_delete=models.CASCADE, null=True)
 
     renting_payment = models.ForeignKey(MyRentingPayment, on_delete=models.CASCADE)
     payment_confirmed = models.BooleanField(default=False)
@@ -232,7 +237,7 @@ class MyRentingPaymentStatus(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta: 
-        unique_together = ('user', 'renting_payment') 
+        # unique_together = ('renting', 'renting_payment') 
         verbose_name = '12. Payment Status'
         verbose_name_plural = verbose_name  
 
@@ -249,8 +254,8 @@ class MyPropertyPurchase(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'property')
-        verbose_name = '13. Property Purchase'
+        # unique_together = ('user', 'property')
+        verbose_name = '13. User Property Purchase'
         verbose_name_plural = verbose_name
 
 
@@ -267,7 +272,7 @@ class MyPropertyPurchasePayment(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'property_purchase')
+        # unique_together = ('user', 'property_purchase')
         verbose_name = '14. Purchase Payment'
         verbose_name_plural = verbose_name
 
@@ -287,7 +292,7 @@ class MyPropertyPurchaseStatus(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'property_purchase')
+        # unique_together = ('user', 'property_purchase')
         verbose_name = '15. Purchase Status'
         verbose_name_plural = verbose_name
 
@@ -309,7 +314,7 @@ class MyPropertyPurchasePaymentStatus(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'property_purchase_payment')
+        # unique_together = ('user', 'property_purchase_payment')
         verbose_name = '16. Purchase Payment Status'
         verbose_name_plural = verbose_name
 

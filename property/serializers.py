@@ -49,6 +49,7 @@ class PropertySerializers(serializers.ModelSerializer):
     BORpolicy = serializers.SerializerMethodField()
     prrs = serializers.SerializerMethodField()
     rdos = serializers.SerializerMethodField()
+    # booking_status = serializers.SerializerMethodField()
 
 
 
@@ -120,6 +121,8 @@ class PropertySerializers(serializers.ModelSerializer):
             return PropertyRentingDurationOptionsSerializers(obj.renting_duration_options.all(),many = True).data    
         except:
             return None
+        
+   
         
 
 class GetPropertyFacilitySerializers(serializers.ModelSerializer):
