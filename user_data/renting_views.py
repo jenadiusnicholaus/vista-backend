@@ -1,6 +1,7 @@
 
 
 
+from property.paginators import CustomPageNumberPagination
 from user_data.azam_pay_checkout import AzamPayCheckout
 from user_data.azam_res_models import TransactionResponse
 from user_data.global_serializers import PropertyStatusUpdateSerializer
@@ -280,10 +281,24 @@ class ConfirmRentingMWMViewSet(viewsets.ModelViewSet):
                 {"message": "renting not found."},
                 status=status.HTTP_404_NOT_FOUND
             )
+        
+class MyRentingRequestViewSet(viewsets.ModelViewSet):
+    queryset = MyRenting.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = MyRentingSerializer
+    pagination_class = CustomPageNumberPagination
 
-         
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset()).filter(user=request.user)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
 
-
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
+        
+    
 
 
         
