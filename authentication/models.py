@@ -50,7 +50,7 @@ class CustomUserManager(BaseUserManager):
     
 
 class CustomUser(AbstractUser):
-    username = None  # Nullify username
+    username = None
     email = models.EmailField(_("email address"), unique=True)
     date_of_birth = models.DateField(verbose_name="Birthday", null=True)
     phone_number = models.CharField(max_length=15, verbose_name="Phone Number", null=True)
@@ -115,5 +115,30 @@ class AzamPayAuthToken(models.Model):
     expires_in = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+
+class Device(models.Model):
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_devices', null=True, blank=True)
+    device_id = models.CharField(max_length=255, unique=True)
+    registration_id = models.CharField(max_length=255)
+    # device fcm registration token
+    # device_fcmrtoken = models.CharField(max_length=255)
+    lat = models.FloatField(null=True, blank=True)
+    lng = models.FloatField(null=True, blank=True)
+    manufacturer = models.CharField(max_length=255, null=True, blank=True)
+    address = models.CharField(max_length=255, null=True, blank=True)
+    model = models.CharField(max_length=255, null=True, blank=True)
+    device_name = models.CharField(max_length=255)
+    device = models.CharField(max_length=255)
+    device_type = models.CharField(max_length=255)
+    is_active = models.BooleanField(default=True)
+    is_physical_device = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.device_name
 
   

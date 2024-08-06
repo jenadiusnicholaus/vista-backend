@@ -41,7 +41,7 @@ class PropertyAdmin(admin.ModelAdmin):
     search_fields = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
     list_filter = [ 'name', 'category', 'price',  'address', 'city', 'state', 'country', 'latitude', 'longitude','host', 'image', 'availability_status', 'publication_status', 'created_at', 'updated_at']
     list_per_page = 10
-    inlines = [ PropertyRulesInline, PropertyRentingRequirementsInline, PropertyAmenityInline, PropertyFacilityInline, PropertyImagesInline, PropertyReviewInline]
+    inlines = [ PropertyRulesInline, PropertyRentingRequirementsInline,PropertyImagesInline,PropertyFacilityInline, PropertyAmenityInline,   PropertyReviewInline]
 
 class PropertyAmenityAdmin(admin.ModelAdmin):
     list_display = ['property', 'name']

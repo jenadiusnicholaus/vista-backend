@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "user_data",
     "host_data",
     "property",
+    'fcm'
 
 ]
 X_FRAME_OPTIONS = "SAMEORIGIN"              # allows you to use modals insated of popups
@@ -65,6 +66,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+#    " django.middleware.locale.LocaleMiddleware",
+
 ]
 
 ROOT_URLCONF = 'vasta_settings.urls'
@@ -146,6 +149,8 @@ REST_FRAMEWORK = {
 
 AUTHENTICATION_BACKENDS = (
     # Others auth providers (e.g. Facebook, OpenId, etc)
+    # 'authentication.custom_auth_backend.PhoneAuthBackend',
+    # 'django.contrib.auth.backends.ModelBackend',
  
     # Google  OAuth2
     'social_core.backends.google.GoogleOAuth2',
@@ -154,6 +159,12 @@ AUTHENTICATION_BACKENDS = (
     # Django
     'django.contrib.auth.backends.ModelBackend',
 )
+
+# AUTHENTICATION_BACKENDS = [
+#     'authentication.custom_auth_backend.PhoneAuthBackend',
+#     'django.contrib.auth.backends.ModelBackend',  # Keep the default backend
+# ]
+
 
 # Google configuration
 SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = "<your app key goes here>"

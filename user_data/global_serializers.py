@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from authentication.serializers import UserSerializer
+from fcm.serializers import FcmTokenModelSerializer
 from property.models import Property
 from django.contrib.auth import get_user_model
 
@@ -80,11 +81,26 @@ class MyMobileMoneyPaymentinfosSerializers(serializers.ModelSerializer):
 
 class UserProfileSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(required=False)  # Assuming you want to include email
+    fcm_token = serializers.SerializerMethodField()
+
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "user_profile_pic", "email", "phone_number", "phone_is_verified"]
+        fields = ["first_name", "last_name", "user_profile_pic", "email", "phone_number", "phone_is_verified", "fcm_token"]
         read_only_fields = ['user_profile_pic']
+
+    def get_fcm_token(self, obj):
+        try:
+            fcm_token = obj.fcm_tokens
+            return FcmTokenModelSerializer(fcm_token).data
+        except:
+            return None
+
+
+
+        
+      
+
 
 
 class PropertyStatusUpdateSerializer(serializers.ModelSerializer):

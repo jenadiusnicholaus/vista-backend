@@ -29,6 +29,7 @@ urlpatterns = [
     path(f"api/{API_VERSION}/user-data/", include("user_data.urls")),
     path(f"api/{API_VERSION}/property/", include("property.urls")), 
     path(f"api/{API_VERSION}/host/", include("host_data.urls")),
+    path(f"api/{API_VERSION}/fcm/", include("fcm.urls")),
 
 ]
 

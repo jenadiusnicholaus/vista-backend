@@ -322,3 +322,6 @@ class MyPropertyPurchasePaymentStatus(models.Model):
         return f'{self.user.email} - {self.property_purchase_payment.property_purchase.property.name} '
     
 
+
+    
+

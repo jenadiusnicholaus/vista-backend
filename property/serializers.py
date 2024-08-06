@@ -1,5 +1,7 @@
 from rest_framework import serializers
 
+from fcm.models import FcmNotification, FcmTokenModel
+from fcm.serializers import FcmTokenModelSerializer
 from user_data.models import MyFavoriteProperty
 from .models import Property, PropertyHost, Category, PropertyFacility, PropertyHostCancelationPolicy, PropertyImages, PropertyRentingDurationOptions, PropertyRentingRequirements, PropertyReview, PropertyAmenity
 from django.contrib.auth import get_user_model
@@ -10,10 +12,27 @@ from django.db import models
 
 class GetPropertyhostSerializers(serializers.ModelSerializer):
     user = UserSerializer()
+    fcmtoken = serializers.SerializerMethodField()
+
 
     class Meta:
         model = PropertyHost
-        fields = '__all__'
+        fields = [
+            'id',
+            'user',
+            'fcmtoken',
+            "is_verified",
+            "property_count",
+            'created_at',
+            'updated_at'
+        ]
+
+    def get_fcmtoken(self, obj):
+        try:
+            tokenModel = FcmTokenModel.objects.get(user=obj.user)
+            return FcmTokenModelSerializer(tokenModel).data
+        except:
+            return None
 
     def get_time_at_visita(self, obj):
         return obj.created_at.strftime('%Y-%m-%d %H:%M:%S')

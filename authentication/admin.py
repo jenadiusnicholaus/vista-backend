@@ -21,6 +21,7 @@ class CustomUserAdmin(UserAdmin):
     # model = CustomUser
     add_form = CustomUserCreationForm
     list_display = (
+    
         "email",
         "first_name",
         "last_name",
@@ -42,6 +43,7 @@ class CustomUserAdmin(UserAdmin):
     )
     fieldsets = (
         (None, {"fields": (
+        
             "first_name",
             "last_name", 
             "email", 
@@ -61,6 +63,7 @@ class CustomUserAdmin(UserAdmin):
     )
     add_fieldsets = (
         ( None, {"fields": (
+       
             "first_name",
             "last_name",
             "email",

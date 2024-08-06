@@ -68,3 +68,7 @@ env.bak/
 venv.bak/
 media/
 
+# ignore service_account_file.json
+service_account_file.json
+
+
