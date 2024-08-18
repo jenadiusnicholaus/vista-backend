@@ -31,6 +31,8 @@ class FcmTokenModel(models.Model):
     time_stamp = models.DateTimeField(auto_now_add=True)
     is_stale = models.BooleanField(default=False)
     stale_time = models.CharField(max_length=255, choices=STALE_TIME, default='1')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     
     class Meta:
         verbose_name = 'FCM Token'
@@ -80,6 +82,7 @@ class FcmTokenModel(models.Model):
             
 class FcmNotification(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_notifications', null=True, blank=True)
+    to_user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_notifications_to_user', null=True, blank=True)
     title = models.CharField(max_length=255)
     body = models.TextField()
     data = models.JSONField(null=True, blank=True)

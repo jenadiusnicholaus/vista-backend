@@ -1,13 +1,11 @@
 from django.shortcuts import render
 
-from property.serializers import  CreatePropertyReviewSerializers, GetCategorySerializers, GetPropertyDetailsSerializers, PropertySerializers
-from user_data.models import MyFavoriteProperty
-from .models import Category, Property, PropertyReview
+from property.serializers import  CreatePropertyReviewSerializers, GetCategorySerializers, GetPropertyDetailsSerializers, PropertySerializers, SupportedGeoRegionsSerializers
+from .models import Category, Property, PropertyReview, SupportedGeoRegions
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from rest_framework.pagination import PageNumberPagination
-from property.paginators import CustomPageNumberPagination, CustomPagination
+from property.paginators import CustomPageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
 
@@ -113,6 +111,22 @@ class ReviewThePropertyView(viewsets.ModelViewSet):
             
         else:   
             return Response(serializers.errors, status=400)
+        
+class SupportedGeoRegionsViewSet(viewsets.ModelViewSet):
+    queryset = SupportedGeoRegions.objects.filter(is_published=True)
+    serializer_class = SupportedGeoRegionsSerializers
+    permission_classes = [AllowAny]
+    pagination_class = CustomPageNumberPagination
+
+    def list(self, request, *args, **kwargs):
+        queryset = self.filter_queryset(self.get_queryset())
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data)
 
 
 

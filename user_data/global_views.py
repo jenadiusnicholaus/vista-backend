@@ -7,6 +7,8 @@ from user_data.global_serializers import CreateMyFavoritePropertySerializers, Ge
 from user_data.models import MyAddress,  MyFavoriteProperty, MyMobileMoneyPaymentinfos
 from user_data.booking_serializers import   MyAddressSerializers,   MyMobileMoneyPaymentinfosSerializers
 import logging  as logger 
+from rest_framework.views import APIView
+
 
 User = get_user_model()
 
@@ -227,7 +229,6 @@ class MyAddressViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return Response({'message': 'An error occurred.', 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
-
 
 
             

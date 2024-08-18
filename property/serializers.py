@@ -3,7 +3,7 @@ from rest_framework import serializers
 from fcm.models import FcmNotification, FcmTokenModel
 from fcm.serializers import FcmTokenModelSerializer
 from user_data.models import MyFavoriteProperty
-from .models import Property, PropertyHost, Category, PropertyFacility, PropertyHostCancelationPolicy, PropertyImages, PropertyRentingDurationOptions, PropertyRentingRequirements, PropertyReview, PropertyAmenity
+from .models import Property, PropertyHost, Category, PropertyFacility, PropertyHostCancelationPolicy, PropertyImages, PropertyRentingDurationOptions, PropertyRentingRequirements, PropertyReview, PropertyAmenity, SupportedGeoRegions
 from django.contrib.auth import get_user_model
 from django.conf import settings 
 from authentication.serializers import UserSerializer
@@ -211,5 +211,35 @@ class GetPropertyDetailsSerializers(serializers.ModelSerializer):
             'publication_status': {'required': False},
         }
         read_only_fields = ['host', 'created_at', 'updated_at', 'images', 'facilities', 'reviews', 'amenities']
+
+class SupportedGeoRegionsSerializers(serializers.ModelSerializer):
+    total_properties = serializers.SerializerMethodField()
+
+
+
+    class Meta:
+        model = SupportedGeoRegions
+        fields = [
+            'id',
+            'region_name',
+            'is_country',
+            'image',
+            'is_published',
+            'slug',
+            'country',
+            'lat',
+            'lon',
+            'address_code',
+            'state',
+            'city',
+            'created_at',
+            'updated_at',
+            'total_properties'
+        ]
+
+    def get_total_properties(self, obj):
+        return Property.objects.filter(supported_geo_region=obj).count()
+
+    
 
   

@@ -8,7 +8,7 @@ from django.contrib.auth import get_user_model
 from rest_framework import  viewsets
 
 from authentication.models import VerificationCode
-from authentication.serializers import ResetPasswordConfirmSerializer, UserSerializer, VGuestRegisterSerializer
+from authentication.serializers import ResetPasswordConfirmSerializer, UserSerializer, RegisterSerializer
 from django.utils import timezone
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
@@ -18,12 +18,54 @@ from django.contrib.auth.tokens import default_token_generator
 from django.core.exceptions import ValidationError
 from django.core.mail import BadHeaderError
 from django.conf import settings
-# from twilio.rest import Client
 import logging as loggger
+from rest_framework.permissions import AllowAny
+from google.auth.transport import requests
+from google.oauth2 import id_token
 
 
 
 User = get_user_model()
+
+
+# class GoogleSignInView(APIView):
+#     permission_classes = [AllowAny]
+
+#     def post(self, request):
+#         try:
+#             idinfo = id_token.verify_oauth2_token(request.data['access_token'], requests.Request(), settings.GOOGLE_CLIENT_ID)
+
+#             if 'accounts.google.com' in idinfo['iss']:
+#                 user, created = User.objects.get_or_create(email=idinfo['email'])
+#                 if created:
+#                     user.first_name = idinfo['name']
+#                     user.save()
+                
+#                     # Add user to Tenant's Group
+#                     user_group, group_created = Group.objects.get_or_create(name='Tenant')
+#                     if not user.groups.filter(name='Tenant').exists():
+#                         user.groups.add(user_group)
+
+#                     message = "User created successfully."
+#                 else:
+#                     message = "Welcome back!"
+
+#                 refresh = RefreshToken.for_user(user)
+#                 response_data = {
+#                     'refresh': str(refresh),
+#                     'access': str(refresh.access_token),
+#                     "message": message,
+#                     "username": user.username,
+#                     "email": user.email,
+#                 }
+#                 return Response(response_data, status=status.HTTP_200_OK)
+#             else:
+#                 return Response({'message': 'Invalid token issuer'}, status=status.HTTP_400_BAD_REQUEST)
+
+#         except ValueError as e:
+#             return Response({'message': 'Invalid or malformed token'}, status=status.HTTP_400_BAD_REQUEST)
+        
+
 
 class VCheckEmailExistence(APIView):
     
@@ -65,7 +107,7 @@ class VLoginView(APIView):
 
 class VRegisterView(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = VGuestRegisterSerializer
+    serializer_class = RegisterSerializer
 
     def mask_email(self, email):
         name, domain = email.split('@')
@@ -77,7 +119,6 @@ class VRegisterView(viewsets.ModelViewSet):
         if serializer.is_valid():
             user= serializer.save()
             otp = random.randint(100000, 999999)
-
             VerificationCode.objects.create( 
                 user=user, 
                 code=otp,
@@ -85,10 +126,15 @@ class VRegisterView(viewsets.ModelViewSet):
             
 
             # add to Rental host's Group
-            user_group, created = Group.objects.get_or_create(name='guest')
-            if not user.groups.filter(name='guest').exists():
-                user.groups.add(user_group)
-            # Send email with OTP
+            if request.data.get('user_type') == 'host':
+                user_group, created = Group.objects.get_or_create(name='host')
+                if not user.groups.filter(name='host').exists():
+                    user.groups.add(user_group)
+        
+            else:
+                user_group, created = Group.objects.get_or_create(name='guest')
+                if not user.groups.filter(name='guest').exists():
+                    user.groups.add(user_group)
 
             mail_subject = 'Activate your account.'
             message = render_to_string('activate_account.html', {

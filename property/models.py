@@ -28,6 +28,9 @@ class Category(models.Model):
   
 class SupportedGeoRegions(models.Model):
     region_name = models.CharField(max_length=100, unique=True)
+    is_country = models.BooleanField(default=False)
+    image = models.ImageField(upload_to='geo_region_images/', null=True, blank=True)    
+    is_published = models.BooleanField(default=True)
     slug = models.SlugField(max_length=100, unique=True)
     country = models.CharField(max_length=100)
     lat = models.DecimalField(max_digits=9, decimal_places=6)

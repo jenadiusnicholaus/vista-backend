@@ -5,7 +5,7 @@ from property.models import Property
 from django.contrib.auth import get_user_model
 
 from property.serializers import PropertySerializers
-from user_data.models import MyAddress, MyFavoriteProperty, MyMobileMoneyPaymentinfos, MyPaymentCard
+from user_data.models import MyAddress, MyBooking, MyFavoriteProperty, MyMobileMoneyPaymentinfos, MyPaymentCard
 
 User = get_user_model()
 \
@@ -86,7 +86,7 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ["first_name", "last_name", "user_profile_pic", "email", "phone_number", "phone_is_verified", "fcm_token"]
+        fields = ["id","first_name", "last_name", "user_profile_pic", "email", "phone_number", "phone_is_verified", "fcm_token"]
         read_only_fields = ['user_profile_pic']
 
     def get_fcm_token(self, obj):
@@ -97,13 +97,9 @@ class UserProfileSerializer(serializers.ModelSerializer):
             return None
 
 
-
-        
-      
-
-
-
 class PropertyStatusUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Property
         fields = ['availability_status']
+
+

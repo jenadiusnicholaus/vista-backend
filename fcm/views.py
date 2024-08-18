@@ -11,10 +11,43 @@ from fcm.serializers import FcmNotificationSerializer, FcmTokenModelSerializer
 from vasta_settings import settings as settings
 from rest_framework.permissions import AllowAny
 
+
+class FcmNotificationViewSet(viewsets.ModelViewSet):
+    queryset = FcmNotification.objects.all()
+    permission_classes = [IsAuthenticated]
+    serializer_class = FcmNotificationSerializer
+
+    def list(self, request):
+        user = request.user
+        notifications = self.queryset.filter(to_user=user)
+        serializer = self.get_serializer(notifications, many=True)
+        return Response(serializer.data, status=200)
+    
+    def delete(self, request):
+        user = request.user
+        n_id = request.query_params.get('notification_id')
+        notifications = self.queryset.filter(to_user=user, pk=n_id)
+        if not notifications.exists():
+            return Response({
+                'status': 'error',
+                'message': 'Notification does not exist'
+            },
+            status=404)
+        notifications.delete()
+        return Response({
+            'status': 'success',
+            'message': 'Notifications deleted successfully'
+        },
+        status=200)
+    
+
+
 class SendFcmNotification(viewsets.ModelViewSet):
     queryset = FcmNotification.objects.all()
     permission_classes = [IsAuthenticated]
     serializer_class = FcmNotificationSerializer
+
+
 
     def create(self, request):
         project_id = 'vista-9e65c'
@@ -22,8 +55,11 @@ class SendFcmNotification(viewsets.ModelViewSet):
         title = data.get('title')
         body = data.get('body')
         token = data.get('device_registration_token')
-        data = data.get('data')
-        exchange_payload = data.get('exchange_payload')
+        data_d = data.get('data')
+        to_user = data.get('to_user')
+
+
+        print(request.data)
         try:
             google_auth = GoogleAuth(project_id)
             access_token = google_auth.get_access_token()
@@ -51,10 +87,9 @@ class SendFcmNotification(viewsets.ModelViewSet):
             'user': request.user.id,    
             'title': title,
             'body': body,
-            'data': data,
-
-            
-        })
+            'data': data_d,
+            "to_user": to_user
+            })
 
         if not serializers.is_valid():
             return Response(serializers.errors, status=400)
@@ -63,7 +98,7 @@ class SendFcmNotification(viewsets.ModelViewSet):
             device_registration_token=token,
             title=title,
             body=body,
-            data=data)
+            data=data_d)
         if status_code == 200:
             serializers.save()
             return Response({

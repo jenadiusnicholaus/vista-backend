@@ -40,7 +40,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 
-class VGuestRegisterSerializer(serializers.ModelSerializer):
+class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
         required=True, validators=[UniqueValidator(queryset=User.objects.all())]
     )
@@ -60,11 +60,13 @@ class VGuestRegisterSerializer(serializers.ModelSerializer):
             "last_name",
             "phone_number",
             "date_of_birth",
-            "agreed_to_Terms"
+            "agreed_to_Terms",
+            "user_type"
         )
         extra_kwargs = {
             "first_name": {"required": True},
             "last_name": {"required": True},
+            'user_type': {'required': False}
         }
 
     def validate(self, attrs):

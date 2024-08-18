@@ -50,15 +50,19 @@ class CustomUserManager(BaseUserManager):
     
 
 class CustomUser(AbstractUser):
+    USER_TYPE = (
+        ('admin', 'Admin'),
+       ('geust', 'Guest'),
+        ('host', 'Host'),
+    )
     username = None
     email = models.EmailField(_("email address"), unique=True)
     date_of_birth = models.DateField(verbose_name="Birthday", null=True)
     phone_number = models.CharField(max_length=15, verbose_name="Phone Number", null=True)
     agreed_to_Terms = models.BooleanField(default=False)
-    user_profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True) 
+    user_profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
+    user_type = models.CharField(max_length=255, choices=USER_TYPE, default='geust')
 
-
-    # Override groups and user_permissions fields to add related_name
     groups = models.ManyToManyField(
         Group,
         verbose_name=_("groups"),
@@ -88,6 +92,8 @@ class CustomUser(AbstractUser):
     objects = CustomUserManager()
     class Meta:
         unique_together = ('email', 'phone_number')
+        verbose_name = _('user')
+        verbose_name_plural = _('users')
 
  
 
@@ -123,8 +129,6 @@ class Device(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_devices', null=True, blank=True)
     device_id = models.CharField(max_length=255, unique=True)
     registration_id = models.CharField(max_length=255)
-    # device fcm registration token
-    # device_fcmrtoken = models.CharField(max_length=255)
     lat = models.FloatField(null=True, blank=True)
     lng = models.FloatField(null=True, blank=True)
     manufacturer = models.CharField(max_length=255, null=True, blank=True)

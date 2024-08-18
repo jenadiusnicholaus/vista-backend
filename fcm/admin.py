@@ -11,10 +11,10 @@ class FcmTokenModelAdmin(admin.ModelAdmin):
     ordering = ('user', 'fcm_token', 'time_stamp', 'is_stale', 'stale_time')
 
 class FcmNotificationAdmin(admin.ModelAdmin):
-    list_display = ('user', 'title',  'body',  'data', 'created_at', 'updated_at')
+    list_display = ('user',"to_user", 'title',  'body',  'data', 'created_at', 'updated_at')
     list_filter = ('created_at', 'updated_at')
-    search_fields = ('user', 'title', 'body',  'created_at', 'updated_at')
-    ordering = ('user', 'title', 'body',  'created_at', 'updated_at')
+    search_fields = ('user', 'title', 'body',  'created_at', 'updated_at', 'to_user')
+    ordering = ('user', 'title', 'body',  'created_at', 'updated_at', "to_user")
 
 admin.site.register(FcmTokenModel, FcmTokenModelAdmin)
 admin.site.register(FcmNotification, FcmNotificationAdmin)

@@ -17,7 +17,7 @@ from . views import (
                               )
 from rest_framework import routers
 router = routers.DefaultRouter()
-router.register(r'guest-registration', VRegisterView)
+router.register(r'user-registration', VRegisterView)
 
 
 urlpatterns = [
