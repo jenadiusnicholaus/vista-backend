@@ -44,7 +44,6 @@ def get_user_by_phone(phone):
         return None 
 
 def auth(username, server, password):
-    logging.info('Starting authentication for user: %s', username)
     user = get_user_by_phone(username)
     authenticated_user = authenticate(username=user.email, password=password)
     if authenticated_user is not None:

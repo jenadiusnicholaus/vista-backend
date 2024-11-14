@@ -47,7 +47,7 @@ class EjabberdSetPresenceView(APIView):
         try:
 
             response = api.setPresence(user, host, resource, type, show, _status, priority)
-            if response.status_code == 200  :
+            if response.status_code == 200:
                 return Response(response.json(), status=status.HTTP_200_OK)
         
             return Response(response.json(), status=status.HTTP_400_BAD_REQUEST)

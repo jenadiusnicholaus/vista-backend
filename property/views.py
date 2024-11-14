@@ -1,6 +1,12 @@
 from django.shortcuts import render
 
-from property.serializers import  CreatePropertyReviewSerializers, GetCategorySerializers, GetPropertyDetailsSerializers, PropertySerializers, SupportedGeoRegionsSerializers
+from property.serializers import (
+    CreatePropertyReviewSerializers,
+    GetCategorySerializers,
+    GetPropertyDetailsSerializers,
+    PropertySerializers,
+    SupportedGeoRegionsSerializers,
+)
 from .models import Category, Property, PropertyReview, SupportedGeoRegions
 from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
@@ -8,6 +14,7 @@ from rest_framework.response import Response
 from property.paginators import CustomPageNumberPagination
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework import status
+
 
 class GetPropertysPaginationView(viewsets.ModelViewSet):
     queryset = Property.objects.filter(publication_status=True).order_by("-created_at")
@@ -17,15 +24,18 @@ class GetPropertysPaginationView(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
 
     def list(self, request, *args, **kwargs):
-        if request.query_params.get("category", None) == "all":
-            queryset = self.filter_queryset(self.get_queryset()).order_by(
-                "-created_at"
-            )
+        if (
+            request.query_params.get("category", None) == "all"
+            or request.query_params.get("category", None) is None
+            or request.query_params.get("category", None) == ""
+        ):
+            queryset = self.filter_queryset(self.get_queryset()).order_by("-created_at")
         else:
+
             queryset = self.filter_queryset(
-                self.get_queryset().filter(
-                    category=request.query_params.get("category", None)
-                ).order_by("-created_at")
+                self.get_queryset()
+                .filter(category=request.query_params.get("category", None))
+                .order_by("-created_at")
             )
 
         page = self.paginate_queryset(queryset)
@@ -37,7 +47,8 @@ class GetPropertysPaginationView(viewsets.ModelViewSet):
             queryset, many=True, context={"request": request}
         )
         return Response(serializer.data)
-    
+
+
 class GetPropertyDetailsViewSet(viewsets.ModelViewSet):
     queryset = Property.objects.filter(publication_status=True)
     serializer_class = GetPropertyDetailsSerializers
@@ -49,23 +60,21 @@ class GetPropertyDetailsViewSet(viewsets.ModelViewSet):
             raise ValueError("id parameter is required.")
         return Property.objects.get(id=id)
 
-    
     def list(self, request, *args, **kwargs):
-        print(request.query_params.get("id", None)  )
+        print(request.query_params.get("id", None))
         try:
             instance = self.get_object()
         except Property.DoesNotExist:
             return Response({"error": "Property not found."}, status=404)
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
-    
+
 
 class GetCategoriesView(viewsets.ModelViewSet):
     queryset = Category.objects.filter(published=True)
     serializer_class = GetCategorySerializers
     permission_classes = [AllowAny]
     pagination_class = CustomPageNumberPagination
-
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())
@@ -76,42 +85,44 @@ class GetCategoriesView(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
+
 
 class ReviewThePropertyView(viewsets.ModelViewSet):
     queryset = PropertyReview.objects.all()
     serializer_class = CreatePropertyReviewSerializers
     permission_classes = [IsAuthenticated]
+
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())    
+        queryset = self.filter_queryset(self.get_queryset())
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-    
+
     def create(self, request, *args, **kwargs):
         property_id = request.query_params.get("property_id", None)
         user = request.user
         comment = request.data.get("comment", None)
         rating = request.data.get("rating", None)
-        serializers = self.get_serializer(data={
-            "property": property_id,
-            "user": user.id,
-            "comment": comment,
-            "rating": rating,
-        })
+        serializers = self.get_serializer(
+            data={
+                "property": property_id,
+                "user": user.id,
+                "comment": comment,
+                "rating": rating,
+            }
+        )
         if serializers.is_valid():
             serializers.save()
             return Response(
-              
                 {
                     "message": "Review added successfully.",
                 },
-              
-                status=status.HTTP_201_CREATED
+                status=status.HTTP_201_CREATED,
             )
-            
-        else:   
+
+        else:
             return Response(serializers.errors, status=400)
-        
+
+
 class SupportedGeoRegionsViewSet(viewsets.ModelViewSet):
     queryset = SupportedGeoRegions.objects.filter(is_published=True)
     serializer_class = SupportedGeoRegionsSerializers
@@ -127,8 +138,3 @@ class SupportedGeoRegionsViewSet(viewsets.ModelViewSet):
 
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
-
-
-
-       
-

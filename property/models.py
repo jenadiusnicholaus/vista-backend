@@ -98,7 +98,7 @@ class Property(models.Model):
     business_type = (
         ('rent', 'Rent'),
         ('sale', 'Sale'),
-        ('booking', 'Booking'),
+        ('reserve', 'Reserve'),
     )
 
 
@@ -112,7 +112,7 @@ class Property(models.Model):
     supported_geo_region = models.ForeignKey(SupportedGeoRegions, on_delete=models.CASCADE, related_name='supported_geo_region', null=True)
     business_type = models.CharField(choices=business_type, max_length=100, null = True) 
     city = models.CharField(max_length=100)
-    state = models.CharField(max_length=100)
+    state = models.CharField(max_length=100, null=True, blank=True)
     country = models.CharField(max_length=100)
     latitude = models.DecimalField(max_digits=9, decimal_places=6)  
     longitude = models.DecimalField(max_digits=9, decimal_places=6)  
