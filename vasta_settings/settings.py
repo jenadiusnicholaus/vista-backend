@@ -273,5 +273,5 @@ CORS_ALLOWED_ORIGINS = [
     "https://vista.nexacon.cloud",
 ]
 
-CSRF_USE_SESSIONS = False
-CSRF_COOKIE_SECURE = False
+CSRF_USE_SESSIONS = True
+CSRF_COOKIE_SECURE = True
