@@ -40,7 +40,7 @@ ALLOWED_HOSTS = [
     "192.168.1.182",
     "192.168.24.42",
     "192.168.25.42",
-    "vista.nexacon.cloud"
+    "vista.nexacon.cloud",
 ]
 
 
@@ -261,3 +261,14 @@ EJABBERD_API_BU = config("EJABBERD_API_BU", default="no_ejabberd_api_url")
 EJABBERD_API_ACCESS_TOKEN = config(
     "EJABBERD_API_ACCESS_TOKEN", default="no_ejabberd_api_access_token"
 )
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost",
+    "http://127.0.0.1",
+    "http://192.168.1.181",
+    "http://192.168.1.182",
+    "http://192.168.24.42",
+    "http://192.168.25.42",
+    "http://vista.nexacon.cloud",
+    "https://127.0.0.1",
+    "https://vista.nexacon.cloud",
+]
