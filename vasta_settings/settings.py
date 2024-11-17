@@ -265,6 +265,10 @@ EJABBERD_API_ACCESS_TOKEN = config(
 )
 
 # cors headers
+CSRF_COOKIE_SECURE = False  # Set to True with HTTPS
+CSRF_COOKIE_HTTPONLY = False
+CORS_ALLOW_CREDENTIALS = True
+CORS_ORIGIN_ALLOW_ALL = False  # Do not allow all origins; specify the allowed ones
 CORS_ALLOWED_ORIGINS = [
     "http://localhost",
     "http://127.0.0.1",
@@ -273,22 +277,5 @@ CORS_ALLOWED_ORIGINS = [
     "http://192.168.24.42",
     "http://192.168.25.42",
     "http://vista.nexacon.cloud",
-    "https://127.0.0.1",
-    "https://vista.nexacon.cloud",
-]
-
-CSRF_COOKIE_SECURE = False
-CSRF_COOKIE_HTTPONLY = False
-CORS_ALLOW_CREDENTIALS = False  # disallow-credentials
-CORS_ORIGIN_ALLOW_ALL = True
-CORS_ORIGIN_WHITELIST = [
-    "http://localhost",
-    "http://127.0.0.1",
-    "http://192.168.1.181",
-    "http://192.168.1.182",
-    "http://192.168.24.42",
-    "http://192.168.25.42",
-    "http://vista.nexacon.cloud",
-    "https://127.0.0.1",
     "https://vista.nexacon.cloud",
 ]
