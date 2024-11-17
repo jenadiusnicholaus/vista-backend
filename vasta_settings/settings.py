@@ -277,5 +277,5 @@ CORS_ALLOWED_ORIGINS = [
     "https://vista.nexacon.cloud",
 ]
 
-CSRF_COOKIE_SECURE = False  # Set to True in production with HTTPS
+CSRF_COOKIE_SECURE = False
 CSRF_COOKIE_HTTPONLY = False
