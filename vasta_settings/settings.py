@@ -65,11 +65,13 @@ INSTALLED_APPS = [
     "property",
     "fcm",
     "ejabberd_api",
+    "corsheaders",
 ]
 X_FRAME_OPTIONS = "SAMEORIGIN"  # allows you to use modals insated of popups
 SILENCED_SYSTEM_CHECKS = ["security.W019"]  # allows you to use modals insated of popups
 
 MIDDLEWARE = [
+    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -261,6 +263,8 @@ EJABBERD_API_BU = config("EJABBERD_API_BU", default="no_ejabberd_api_url")
 EJABBERD_API_ACCESS_TOKEN = config(
     "EJABBERD_API_ACCESS_TOKEN", default="no_ejabberd_api_access_token"
 )
+
+# cors headers
 CORS_ALLOWED_ORIGINS = [
     "http://localhost",
     "http://127.0.0.1",
