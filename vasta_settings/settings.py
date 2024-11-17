@@ -250,12 +250,12 @@ EMAIL_USE_TLS = True
 EMAIL_USE_SSL = False
 
 # AZAM PAY
-AZAM_PAY_AUTH = "https://authenticator-sandbox.azampay.co.tz"
-AZAM_PAY_CHECKOUT_URL = "https://sandbox.azampay.co.tz"
-AZAM_PAY_APP_NAME = "eshop"
-AZAM_PAY_CLIENT_ID = "a6e6d2df-bd53-4fa4-a858-f0083b5e8ff0"
-AZAM_PAY_CLIENT_SECRET = "VSJh785RIa1t+JD6C3PMlZvHfTBeiXWPJ0Ms72sBjscrMLF3jC+oeR8NWDpLqj1xmAOg5BifZwW30FfLzC9anQHxMugYfjX3FSdDvPqKzEJk7vWZz2/TExHZei8TlUF0mI6bcOFOm79doqc/hum8bDxGMdudjM4crmjPQ+1wsp8HGZXdHEW5w6oLi49ZI8n2iHmRXjArixf2kALTtYxwvQkHt9NuZxkS+9RJZJ6T+QLzR5HmiqVbLTh34rV21scZJNYu74BX854Qt1rVtkrsTtSc3XfcXlb5m8emrWjaEihn8TvSK8lE41PvUFa57Si5+QxKpFWM7YF+qqM9pGb24ARigPKc10fgUT8TtzGcPARyPvvDNGwYOvsyhc9dYM1kZQJTvnJdP3HXBzPOneR9NAfwrUWygepE2X455J59bTPHkXiQWbYz06rEv7FdnpkpQ+WqGiy9o1BlMhQ8oBhZgZxeiJqyts1j9HLzQ6jEvR+4U4cnRKVj0ZT/+TMATRGrXd7tWxToPfccagXNOs8tT2Q8DX1cxH+aqcSIXfuu958wEKmWQi6t7VbRf/SOIX2A2K15MpIsTwnznGeht7BPLxrZ5u1yUUjG/KuXsemfAHqonJn6hgejEEtuguDF7RPnuZFLwX6o/VoVzHdfyHpE6KBsLyNQmLSY8m0EwaptQp8="
-TOKEN = "5c201d0e-c623-478f-a1ee-74cc02df8ca5"
+AZAM_PAY_AUTH = config("AZAM_PAY_AUTH", default="no_auth")
+AZAM_PAY_CHECKOUT_URL = config("AZAM_PAY_CHECKOUT_URL", default="no_checkout_url")
+AZAM_PAY_APP_NAME = config("AZAM_PAY_APP_NAME", default="no_app_name")
+AZAM_PAY_CLIENT_ID = config("AZAM_PAY_CLIENT_ID", default="no_client_id")
+AZAM_PAY_CLIENT_SECRET = config("AZAM_PAY_CLIENT_SECRET", default="no_client_secret")
+TOKEN = config("TOKEN", default="no_token")
 
 EJABBERD_API_BU = config("EJABBERD_API_BU", default="no_ejabberd_api_url")
 EJABBERD_API_ACCESS_TOKEN = config(
