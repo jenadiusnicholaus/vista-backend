@@ -279,3 +279,21 @@ CORS_ALLOWED_ORIGINS = [
     "http://vista.nexacon.cloud",
     "https://vista.nexacon.cloud",
 ]
+
+ALLOWED_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]
+
+CORS_ALLOW_METHODS = [
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+]

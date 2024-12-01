@@ -20,7 +20,6 @@ class GetPropertysPaginationView(viewsets.ModelViewSet):
     queryset = Property.objects.filter(publication_status=True).order_by("-created_at")
     serializer_class = PropertySerializers
     pagination_class = CustomPageNumberPagination
-
     permission_classes = [AllowAny]
 
     def list(self, request, *args, **kwargs):
