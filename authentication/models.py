@@ -1,6 +1,6 @@
 # users/models.py
 from django.contrib.auth.base_user import BaseUserManager
-from django.contrib.auth.models import AbstractUser,  Group, Permission
+from django.contrib.auth.models import AbstractUser, Group, Permission
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from phone_field import PhoneField
@@ -8,9 +8,9 @@ from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 
 
-
 from django.contrib.auth.models import BaseUserManager
 from django.utils.translation import gettext_lazy as _
+
 
 class CustomUserManager(BaseUserManager):
     """
@@ -18,50 +18,84 @@ class CustomUserManager(BaseUserManager):
     for authentication instead of usernames. The manager class defines
     the create_user and create_superuser methods.
     """
-    def create_user(self, email, password=None, date_of_birth=None, phone_number=None, agreed_to_Terms=None, **extra_fields):
+
+    def create_user(
+        self,
+        email,
+        password=None,
+        date_of_birth=None,
+        phone_number=None,
+        agreed_to_Terms=None,
+        **extra_fields
+    ):
         """
         Create and save a regular user with the given email, date of birth, and password.
         """
         if not email:
             raise ValueError(_("The Email must be set"))
         email = self.normalize_email(email)
-        user = self.model(email=email, date_of_birth=date_of_birth, phone_number=phone_number, agreed_to_Terms=agreed_to_Terms, **extra_fields)
+        user = self.model(
+            email=email,
+            date_of_birth=date_of_birth,
+            phone_number=phone_number,
+            agreed_to_Terms=agreed_to_Terms,
+            **extra_fields
+        )
         user.set_password(password)
-        extra_fields.setdefault('is_staff', False)
-        extra_fields.setdefault('is_active', False) 
-        extra_fields.setdefault('is_superuser', False)
+        extra_fields.setdefault("is_staff", False)
+        extra_fields.setdefault("is_active", False)
+        extra_fields.setdefault("is_superuser", False)
         user.save(using=self._db)
         return user
 
-    def create_superuser(self, email, password=None, date_of_birth=None, phone_number=None,agreed_to_Terms=None, **extra_fields):
+    def create_superuser(
+        self,
+        email,
+        password=None,
+        date_of_birth=None,
+        phone_number=None,
+        agreed_to_Terms=None,
+        **extra_fields
+    ):
         """
         Create and save a superuser with the given email, date of birth, and password.
         """
-        extra_fields.setdefault('is_staff', True)
-        extra_fields.setdefault('is_superuser', True)
-        extra_fields.setdefault('is_active', True)
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
 
-        if extra_fields.get('is_staff') is not True:
-            raise ValueError(_('Superuser must have is_staff=True.'))
-        if extra_fields.get('is_superuser') is not True:
-            raise ValueError(_('Superuser must have is_superuser=True.'))
+        if extra_fields.get("is_staff") is not True:
+            raise ValueError(_("Superuser must have is_staff=True."))
+        if extra_fields.get("is_superuser") is not True:
+            raise ValueError(_("Superuser must have is_superuser=True."))
 
-        return self.create_user(email, password, date_of_birth, phone_number, agreed_to_Terms,  **extra_fields)
-    
+        return self.create_user(
+            email,
+            password,
+            date_of_birth,
+            phone_number,
+            agreed_to_Terms,
+            **extra_fields
+        )
+
 
 class CustomUser(AbstractUser):
     USER_TYPE = (
-        ('admin', 'Admin'),
-       ('geust', 'Guest'),
-        ('host', 'Host'),
+        ("admin", "Admin"),
+        ("guest", "Guest"),
+        ("host", "Host"),
     )
     username = None
     email = models.EmailField(_("email address"), unique=True)
     date_of_birth = models.DateField(verbose_name="Birthday", null=True)
-    phone_number = models.CharField(max_length=15, verbose_name="Phone Number", null=True)
+    phone_number = models.CharField(
+        max_length=15, verbose_name="Phone Number", null=True
+    )
     agreed_to_Terms = models.BooleanField(default=False)
-    user_profile_pic = models.ImageField(upload_to='profile_pics/', null=True, blank=True)
-    user_type = models.CharField(max_length=255, choices=USER_TYPE, default='geust')
+    user_profile_pic = models.ImageField(
+        upload_to="profile_pics/", null=True, blank=True
+    )
+    user_type = models.CharField(max_length=255, choices=USER_TYPE, default="geust")
 
     groups = models.ManyToManyField(
         Group,
@@ -82,29 +116,37 @@ class CustomUser(AbstractUser):
         related_name="customuser_set",  # Changed related_name
         related_query_name="customuser",
     )
-    last_login = models.DateTimeField(_("last login"), auto_now=False, null=True, blank=True    )
+    last_login = models.DateTimeField(
+        _("last login"), auto_now=False, null=True, blank=True
+    )
 
     USERNAME_FIELD = "email"
-    REQUIRED_FIELDS = ["first_name", "last_name", "date_of_birth", "phone_number", "agreed_to_Terms"]
+    REQUIRED_FIELDS = [
+        "first_name",
+        "last_name",
+        "date_of_birth",
+        "phone_number",
+        "agreed_to_Terms",
+    ]
     phone_is_verified = models.BooleanField(default=False)
-    
 
     objects = CustomUserManager()
-    class Meta:
-        unique_together = ('email', 'phone_number')
-        verbose_name = _('user')
-        verbose_name_plural = _('users')
 
- 
+    class Meta:
+        unique_together = ("email", "phone_number")
+        verbose_name = _("user")
+        verbose_name_plural = _("users")
 
     def __str__(self):
         if self.email is not None:
             return self.email
-        return self.phone_number    
-    
+        return self.phone_number
+
 
 class VerificationCode(models.Model):
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='verification_code'  )
+    user = models.ForeignKey(
+        CustomUser, on_delete=models.CASCADE, related_name="verification_code"
+    )
     code = models.CharField(max_length=6, unique=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -112,12 +154,14 @@ class VerificationCode(models.Model):
 
     def __str__(self):
         return self.user.email
-    
+
 
 class AzamPayAuthToken(models.Model):
     access_token = models.TextField(null=True, blank=True)
-    refresh_token = models.TextField( null=True, blank=True)
-    token_type = models.CharField(max_length=255, default='Bearer', null=True, blank=True)
+    refresh_token = models.TextField(null=True, blank=True)
+    token_type = models.CharField(
+        max_length=255, default="Bearer", null=True, blank=True
+    )
     expires_in = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -125,8 +169,15 @@ class AzamPayAuthToken(models.Model):
 
 class Device(models.Model):
     from django.contrib.auth import get_user_model
+
     User = get_user_model()
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='fcm_devices', null=True, blank=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="fcm_devices",
+        null=True,
+        blank=True,
+    )
     device_id = models.CharField(max_length=255, unique=True)
     registration_id = models.CharField(max_length=255)
     lat = models.FloatField(null=True, blank=True)
@@ -144,5 +195,3 @@ class Device(models.Model):
 
     def __str__(self):
         return self.device_name
-
-  
