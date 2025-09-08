@@ -73,8 +73,8 @@ class Authentication:
             response = requests.post(
                 url, 
                 headers=headers, 
-                data=json.dumps(payload),
-                timeout=30  # 30 second timeout
+                data=json.dumps(payload)
+                # No timeout for sandbox - allows longer response times
             )
             
             # Check if request was successful

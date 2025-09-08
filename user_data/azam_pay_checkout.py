@@ -72,8 +72,8 @@ class AzamPayCheckout:
             response = requests.post(
                 url, 
                 headers=headers, 
-                data=json.dumps(payload),
-                timeout=60  # 60 second timeout for payment requests
+                data=json.dumps(payload)
+                # No timeout for sandbox - allows longer response times
             )
             
             response.raise_for_status()
@@ -111,7 +111,7 @@ class AzamPayCheckout:
             
             self.logger.info(f"Verifying payment for transaction ID: {transaction_id}")
             
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
             
             response_data = response.json()
@@ -143,7 +143,7 @@ class AzamPayCheckout:
             
             self.logger.info(f"Getting payment status for transaction ID: {transaction_id}")
             
-            response = requests.get(url, headers=headers, timeout=30)
+            response = requests.get(url, headers=headers)
             response.raise_for_status()
             
             response_data = response.json()
@@ -183,8 +183,7 @@ class AzamPayCheckout:
             response = requests.post(
                 url, 
                 headers=headers, 
-                data=json.dumps(payload),
-                timeout=30
+                data=json.dumps(payload)
             )
             response.raise_for_status()
             
@@ -232,8 +231,7 @@ class AzamPayCheckout:
             response = requests.post(
                 url, 
                 headers=headers, 
-                data=json.dumps(payload),
-                timeout=30
+                data=json.dumps(payload)
             )
             response.raise_for_status()
             

@@ -4,6 +4,7 @@
 from property.paginators import CustomPageNumberPagination
 from user_data.azam_pay_checkout import AzamPayCheckout
 from user_data.azam_res_models import TransactionResponse
+from user_data.payment_utils import PaymentValidator, PaymentProcessor
 from user_data.global_serializers import PropertyStatusUpdateSerializer
 from user_data.models import MyRenting, MyRentingStatus
 from user_data.renting_serializers import CreateMyRentingSerializer, CreateMyRentingPaymentSerializers, CreateMyRentingPaymentStatusSerializer, CreateMyRentingStatusSerializer, MyRentingSerializer, MyRentingStatusSerializer
@@ -190,76 +191,42 @@ class ConfirmRentingMWMViewSet(viewsets.ModelViewSet):
                 "message": "Renting not found or access denied"
             }, status=status.HTTP_404_NOT_FOUND)
         
-        # Validate amount
-        try:
-            amount = float(amount)
-            if amount <= 0:
-                raise ValueError("Amount must be positive")
-        except (ValueError, TypeError):
-            return Response({
-                "message": "Invalid amount format"
-            }, status=status.HTTP_400_BAD_REQUEST)
+        # Validate payment data using utility
+        payment_data = {
+            'payment_method': payment_method,
+            'account_number': accountNumber,
+            'amount': amount
+        }
         
-        # Validate phone number format
-        phone_pattern = r'^(071|065|067|078|068|075|062|076|074)\d{7}$'
-        if not re.match(phone_pattern, str(accountNumber)):
+        is_valid, error_message = PaymentValidator.validate_payment_request(payment_data)
+        if not is_valid:
             return Response({
-                "message": "Invalid phone number format. Must be a valid Tanzanian mobile number"
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        # Validate payment method
-        from .azam_res_models import PaymentProvider
-        if not PaymentProvider.is_valid_provider(payment_method):
-            valid_providers = PaymentProvider.get_all_providers()
-            return Response({
-                "message": f"Invalid payment method. Must be one of: {', '.join(valid_providers)}"
+                "message": error_message
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Normalize provider name
+        from .azam_res_models import PaymentProvider
         payment_method = PaymentProvider.normalize_provider(payment_method)
 
-        # Initialize payment gateway
+        # Process payment using PaymentProcessor utility
         try:
-            azmpay = AzamPayCheckout(
-                accountNumber=accountNumber,
-                amount=amount,
-                externalId=renting_id,
-                provider=payment_method,
-            )
+            processor = PaymentProcessor(user=user, renting_id=renting_id)
             
-            # Validate phone number for specific provider
-            if not azmpay.validate_phone_number(accountNumber, payment_method):
+            result = processor.process_payment(payment_data)
+            
+            if not result['success']:
                 return Response({
-                    "message": f"Phone number {accountNumber} is not valid for {payment_method} network"
+                    "message": result['message']
                 }, status=status.HTTP_400_BAD_REQUEST)
-                
-        except Exception as e:
-            logger.error(f"Payment gateway initialization failed: {str(e)}")
+            
+            # Update property status after successful payment
+            self.update_property_status(renting_id)
+            
             return Response({
-                "message": "Failed to initialize payment gateway",
-                "error": "Please check your payment details and try again"
-            }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Process payment
-        try:
-            response = azmpay.initCheckout()
-            
-            # Validate response structure
-            if not isinstance(response, dict):
-                raise ValueError("Invalid response format from payment gateway")
-            
-            if not response.get('success', False):
-                error_message = response.get('message', 'Payment failed')
-                return Response({
-                    "message": "Payment failed",
-                    "error": error_message
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
-            transaction_id = response.get('transactionId')
-            if not transaction_id:
-                raise ValueError("No transaction ID received")
-                
-            logger.info(f"Payment initiated successfully for renting {renting_id}, transaction: {transaction_id}")
+                'message': 'Renting confirmed successfully.',
+                'transaction_id': result.get('transaction_id'),
+                'payment_id': result.get('payment_id')
+            }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
             logger.error(f"Payment processing failed: {str(e)}")
@@ -267,74 +234,6 @@ class ConfirmRentingMWMViewSet(viewsets.ModelViewSet):
                 "message": "Payment processing failed",
                 "error": "Please try again or contact support"
             }, status=status.HTTP_400_BAD_REQUEST)
-
-        # Save payment information
-        try:
- 
-            pszls = MyRentingPaymentSerializers(data={
-                'renting': renting_id,
-                'user': user.id,
-                'payment_method': payment_method,
-                'transaction_id': transaction_id
-            })
-            if pszls.is_valid():
-                pszls.save()
-           
-                pStatusSzs = CreateMyRentingPaymentStatusSerializer(data={
-                    'user': user.id,
-                    'renting': renting_id,
-                    'renting_payment': pszls.data['id'],
-                    'payment_confirmed': False,
-                    'payment_completed': False,
-                    'payment_canceled': False,
-                    "confirmed_at": timezone.now(),
-                   
-                })
-                if pStatusSzs.is_valid():
-                    pStatusSzs.save()
-               
-                    rentingStatusSzs = CreateMyRentingStatusSerializer(data={
-                        'user': user.id,
-                        'renting': renting_id,
-                        'renting_request_confirmed': True,
-                        'renting_status': 'ongoing',
-                        'confirmed_at': timezone.now(),
-                        'started_at': timezone.now(),
-                       
-                    })
-                    if rentingStatusSzs.is_valid():
-                        rentingStatusSzs.save()
-
-                        # final update booked property status
-                        self.update_property_status(renting_id)
-
-                        return Response(
-                            {
-                                'message': 'Renting confirmed successfully.',
-                            }, status=status.HTTP_201_CREATED
-                        )
-                        # // update property status to not available
-                    else:
-                        logger.error(f"Renting status creation failed: {rentingStatusSzs.errors}")
-                        return Response({
-                            'message': 'Failed to create renting status record'
-                        }, status=status.HTTP_400_BAD_REQUEST)
-                else:
-                    logger.error(f"Payment status creation failed: {pStatusSzs.errors}")
-                    return Response({
-                        'message': 'Failed to create payment status record'
-                    }, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                logger.error(f"Payment record creation failed: {pszls.errors}")
-                return Response({
-                    'message': 'Failed to create payment record'
-                }, status=status.HTTP_400_BAD_REQUEST)
-                
-        except Exception as e:
-            logger.error(f"Error saving payment data: {str(e)}")
-            return Response({
-                'message': 'Failed to save payment information'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
     def update_property_status(self, renting_id):
