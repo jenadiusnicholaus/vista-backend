@@ -194,15 +194,33 @@ class ConfirmRentingMWMViewSet(viewsets.ModelViewSet):
         # Validate payment data using utility
         payment_data = {
             'payment_method': payment_method,
-            'account_number': accountNumber,
+            'accountNumber': accountNumber,
             'amount': amount
         }
         
-        is_valid, error_message = PaymentValidator.validate_payment_request(payment_data)
+        # Validate provider
+        is_valid, error_message = PaymentValidator.validate_provider(payment_method)
         if not is_valid:
             return Response({
                 "message": error_message
             }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate phone number
+        is_valid, error_message = PaymentValidator.validate_phone_number(accountNumber, payment_method)
+        if not is_valid:
+            return Response({
+                "message": error_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate amount
+        is_valid, error_message, validated_amount = PaymentValidator.validate_amount(amount)
+        if not is_valid:
+            return Response({
+                "message": error_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Update payment data with validated amount
+        payment_data['amount'] = validated_amount
         
         # Normalize provider name
         from .azam_res_models import PaymentProvider
