@@ -8,8 +8,11 @@ from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from django.utils import timezone
-import logging as logger
+from django.core.exceptions import ValidationError
+from decimal import Decimal, InvalidOperation
+import logging
 import json
+import re
 
 
 class MybookingInforsViewSet(viewsets.ModelViewSet):
@@ -28,15 +31,40 @@ class MybookingInforsViewSet(viewsets.ModelViewSet):
         except self.queryset.model.DoesNotExist:  
             return Response({'message': 'Not Booking, please Add one now.'}, status=status.HTTP_400_BAD_REQUEST)
         
-    def create(self, request, *args, **kwargs): 
-        print(request.data)
+    def create(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
         user = request.user
-        check_in = request.data.get('check_in', None)
-        check_out = request.data.get('check_out', None)
-        total_guest = request.data.get('total_guest', None)
-        total_price = request.data.get('total_price', None)
-        adult = request.data.get('adult', None)
-        children = request.data.get('children', None)
+        
+        # Validate required fields
+        required_fields = ['check_in', 'check_out', 'total_price', 'adult', 'children']
+        missing_fields = [field for field in required_fields if not request.data.get(field)]
+        
+        if missing_fields:
+            return Response({
+                'message': f'Missing required fields: {", ".join(missing_fields)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        check_in = request.data.get('check_in')
+        check_out = request.data.get('check_out')
+        total_price = request.data.get('total_price')
+        adult = request.data.get('adult')
+        children = request.data.get('children')
+        
+        # Validate numeric fields
+        try:
+            adult = int(adult)
+            children = int(children)
+            total_price = Decimal(str(total_price))
+            
+            if adult < 0 or children < 0:
+                raise ValueError("Guest counts cannot be negative")
+            if total_price <= 0:
+                raise ValueError("Total price must be positive")
+                
+        except (ValueError, InvalidOperation) as e:
+            return Response({
+                'message': f'Invalid numeric values: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
         serializers = CreateMyBookingSerializers(data={
             'user': user.id,
             "property": request.query_params.get('property_id', None),  
@@ -98,8 +126,8 @@ class MybookingInforsViewSet(viewsets.ModelViewSet):
         except MyBooking.DoesNotExist:
             return Response({'message': 'Booking information not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
-            print(e)
-            return Response({'message': 'An error occurred.', 'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            logger.error(f'Error updating booking: {str(e)}')
+            return Response({'message': 'An error occurred while updating booking.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         
 
@@ -234,62 +262,113 @@ class ConfirmBookingViewSet(viewsets.ModelViewSet):
     #     except MyBookingStatus.DoesNotExist:
     #         return Response({'message': 'Booking status not found.'}, status=status.HTTP_404_NOT_FOUND)       
     def create(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
         booking_id = request.query_params.get('booking_id', None)
         user = request.user
         payment_method = request.data.get('payment_method', None)
         accountNumber = request.data.get('accountNumber', None)
         amount = request.data.get('amount', None)
 
+        # Validate required parameters
         if not all([booking_id, payment_method, accountNumber, amount]):
-            return Response(
-                {
-                    "message": "Missing required parameters."
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
-
+            return Response({
+                "message": "Missing required parameters: booking_id, payment_method, accountNumber, amount"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate booking exists and belongs to user
         try:
-            # Get payment gateway authentication
+            booking = MyBooking.objects.get(id=booking_id, user=user)
+        except MyBooking.DoesNotExist:
+            return Response({
+                "message": "Booking not found or access denied"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validate amount
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError("Amount must be positive")
+        except (ValueError, TypeError):
+            return Response({
+                "message": "Invalid amount format"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate phone number format
+        phone_pattern = r'^(071|065|067|078|068|075|062|076|074)\d{7}$'
+        if not re.match(phone_pattern, str(accountNumber)):
+            return Response({
+                "message": "Invalid phone number format. Must be a valid Tanzanian mobile number"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate payment method
+        from .azam_res_models import PaymentProvider
+        if not PaymentProvider.is_valid_provider(payment_method):
+            valid_providers = PaymentProvider.get_all_providers()
+            return Response({
+                "message": f"Invalid payment method. Must be one of: {', '.join(valid_providers)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Normalize provider name
+        payment_method = PaymentProvider.normalize_provider(payment_method)
+
+        # Initialize payment gateway
+        try:
             azmpay = AzamPayCheckout(
                 accountNumber=accountNumber,
                 amount=amount,
                 externalId=booking_id,
                 provider=payment_method,
             )
+            
+            # Validate phone number for specific provider
+            if not azmpay.validate_phone_number(accountNumber, payment_method):
+                return Response({
+                    "message": f"Phone number {accountNumber} is not valid for {payment_method} network"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
         except Exception as e:
-            return Response(
-                {
-                    "message": "Failed to authenticate with payment gateway",
-                    "data": str(e),
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
+            logger.error(f"Payment gateway initialization failed: {str(e)}")
+            return Response({
+                "message": "Failed to initialize payment gateway",
+                "error": "Please check your payment details and try again"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Process payment
         try:
-            # Get payment response from payment gateway
             response = azmpay.initCheckout()
-            responseModel = TransactionResponse(**json.loads(response))
-        except Exception as e:
-            return Response(
-                {
-                    "message": "Error creating checkout",
-                    "data": str(e),
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if not responseModel.success:
-            return Response(
-                {
+            
+            # Validate response structure
+            if not isinstance(response, dict):
+                raise ValueError("Invalid response format from payment gateway")
+            
+            if not response.get('success', False):
+                error_message = response.get('message', 'Payment failed')
+                return Response({
                     "message": "Payment failed",
-                    "data": responseModel.message
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
-        else:
+                    "error": error_message
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            transaction_id = response.get('transactionId')
+            if not transaction_id:
+                raise ValueError("No transaction ID received")
+                
+            logger.info(f"Payment initiated successfully for booking {booking_id}, transaction: {transaction_id}")
+            
+        except Exception as e:
+            logger.error(f"Payment processing failed: {str(e)}")
+            return Response({
+                "message": "Payment processing failed",
+                "error": "Please try again or contact support"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        
+        # Save payment information
+        try:
+
             pszls = MyBookingPaymentSerializers(data={
                 'booking': booking_id,
                 'user': user.id,
                 'payment_method': payment_method,
-                'transaction_id': responseModel.transactionId
+                'transaction_id': transaction_id
             })
             if pszls.is_valid():
                 pszls.save()
@@ -326,32 +405,29 @@ class ConfirmBookingViewSet(viewsets.ModelViewSet):
                         )
                         # // update property status to not available
                     else:
-                        logger.error(bookingStatusSzs.errors)  
-                        return Response(
-                            {
-                                'message': 'Booking not confirmed.',
-                                'data': bookingStatusSzs.errors
-                            }, status=status.HTTP_400_BAD_REQUEST
-                        )
+                        logger.error(f"Booking status creation failed: {bookingStatusSzs.errors}")
+                        return Response({
+                            'message': 'Failed to create booking status record'
+                        }, status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    logger.error(pStatusSzs.errors)
-                    return Response(
-                        {
-                            'message': 'Booking not confirmed.',
-                            'data': pStatusSzs.errors
-                        }, status=status.HTTP_400_BAD_REQUEST
-                    )
+                    logger.error(f"Payment status creation failed: {pStatusSzs.errors}")
+                    return Response({
+                        'message': 'Failed to create payment status record'
+                    }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                logger.error(pszls.errors)
-                return Response(
-                    {
-                        'message': 'Booking not confirmed.',
-                        'data': pszls.errors
-                    }, status=status.HTTP_400_BAD_REQUEST
-                )
+                logger.error(f"Payment record creation failed: {pszls.errors}")
+                return Response({
+                    'message': 'Failed to create payment record'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error saving payment data: {str(e)}")
+            return Response({
+                'message': 'Failed to save payment information'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
-    def update_property_status(request, booking_id):
+    def update_property_status(self, booking_id):
         try:
             booking = MyBooking.objects.get(id=booking_id)
             property_instance = booking.property

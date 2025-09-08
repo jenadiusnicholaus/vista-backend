@@ -12,8 +12,11 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from rest_framework.response import Response
 from django.utils import timezone
-import logging as logger
+from django.core.exceptions import ValidationError
+from decimal import Decimal, InvalidOperation
+import logging
 import json
+import re
 
 
 
@@ -27,21 +30,53 @@ class MyRentingModelViewSet(viewsets.ModelViewSet):
             queryset = self.filter_queryset(self.get_queryset()).filter(user=request.user, property__id =request.query_params.get('property_id')).latest('created_at')
             serializer = self.get_serializer(queryset)
             return Response(serializer.data, status=status.HTTP_200_OK)
-        except:
+        except MyRenting.DoesNotExist:
             return Response({"message": "No renting found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger = logging.getLogger(__name__)
+            logger.error(f'Error retrieving renting: {str(e)}')
+            return Response({"message": "An error occurred while retrieving renting."}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         
     def create(self, request, *args, **kwargs):
-      
-        data =  {
+        logger = logging.getLogger(__name__)
         
+        # Validate required fields
+        required_fields = ['property', 'renting_duration', 'total_price', 'check_in', 'check_out', 'total_family_member', 'adult', 'children']
+        missing_fields = [field for field in required_fields if not request.data.get(field)]
+        
+        if missing_fields:
+            return Response({
+                'message': f'Missing required fields: {", ".join(missing_fields)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate numeric fields
+        try:
+            adult = int(request.data.get('adult'))
+            children = int(request.data.get('children'))
+            total_family_member = int(request.data.get('total_family_member'))
+            total_price = Decimal(str(request.data.get('total_price')))
+            
+            if adult < 0 or children < 0 or total_family_member < 0:
+                raise ValueError("Family member counts cannot be negative")
+            if total_price <= 0:
+                raise ValueError("Total price must be positive")
+            if adult + children != total_family_member:
+                raise ValueError("Total family members should equal adult + children")
+                
+        except (ValueError, InvalidOperation) as e:
+            return Response({
+                'message': f'Invalid numeric values: {str(e)}'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        data = {
             'property': request.data.get('property'),
             'renting_duration': request.data.get('renting_duration'),
-            'total_price': request.data.get('total_price'),
+            'total_price': total_price,
             'check_in': request.data.get('check_in'),
             'check_out': request.data.get('check_out'),
-            'total_family_member': request.data.get('total_family_member'),
-            'adult': request.data.get('adult'),
-            'children': request.data.get('children'),
+            'total_family_member': total_family_member,
+            'adult': adult,
+            'children': children,
             'user': request.user.id
         }
 
@@ -134,63 +169,113 @@ class ConfirmRentingMWMViewSet(viewsets.ModelViewSet):
         except MyRentingStatus.DoesNotExist:
             return Response({'message': 'Renting status not found.'}, status=status.HTTP_404_NOT_FOUND)       
     def create(self, request, *args, **kwargs):
+        logger = logging.getLogger(__name__)
         renting_id = request.query_params.get('renting_id', None)
         user = request.user
         payment_method = request.data.get('payment_method', None)
         accountNumber = request.data.get('accountNumber', None)
         amount = request.data.get('amount', None)
 
+        # Validate required parameters
         if not all([renting_id, payment_method, accountNumber, amount]):
-            return Response(
-                {
-                    "message": "Missing required parameters."
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
-
+            return Response({
+                "message": "Missing required parameters: renting_id, payment_method, accountNumber, amount"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate renting exists and belongs to user
         try:
-            # Get payment gateway authentication
+            renting = MyRenting.objects.get(id=renting_id, user=user)
+        except MyRenting.DoesNotExist:
+            return Response({
+                "message": "Renting not found or access denied"
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Validate amount
+        try:
+            amount = float(amount)
+            if amount <= 0:
+                raise ValueError("Amount must be positive")
+        except (ValueError, TypeError):
+            return Response({
+                "message": "Invalid amount format"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate phone number format
+        phone_pattern = r'^(071|065|067|078|068|075|062|076|074)\d{7}$'
+        if not re.match(phone_pattern, str(accountNumber)):
+            return Response({
+                "message": "Invalid phone number format. Must be a valid Tanzanian mobile number"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Validate payment method
+        from .azam_res_models import PaymentProvider
+        if not PaymentProvider.is_valid_provider(payment_method):
+            valid_providers = PaymentProvider.get_all_providers()
+            return Response({
+                "message": f"Invalid payment method. Must be one of: {', '.join(valid_providers)}"
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Normalize provider name
+        payment_method = PaymentProvider.normalize_provider(payment_method)
+
+        # Initialize payment gateway
+        try:
             azmpay = AzamPayCheckout(
                 accountNumber=accountNumber,
                 amount=amount,
                 externalId=renting_id,
                 provider=payment_method,
             )
+            
+            # Validate phone number for specific provider
+            if not azmpay.validate_phone_number(accountNumber, payment_method):
+                return Response({
+                    "message": f"Phone number {accountNumber} is not valid for {payment_method} network"
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
         except Exception as e:
-            return Response(
-                {
-                    "message": "Failed to authenticate with payment gateway",
-                    "data": str(e),
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
+            logger.error(f"Payment gateway initialization failed: {str(e)}")
+            return Response({
+                "message": "Failed to initialize payment gateway",
+                "error": "Please check your payment details and try again"
+            }, status=status.HTTP_400_BAD_REQUEST)
 
+        # Process payment
         try:
-            # Get payment response from payment gateway
             response = azmpay.initCheckout()
-            responseModel = TransactionResponse(**json.loads(response))
-        except Exception as e:
-            return Response(
-                {
-                    "message": "Error creating checkout",
-                    "data": str(e),
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
-
-        if not responseModel.success:
-            return Response(
-                {
+            
+            # Validate response structure
+            if not isinstance(response, dict):
+                raise ValueError("Invalid response format from payment gateway")
+            
+            if not response.get('success', False):
+                error_message = response.get('message', 'Payment failed')
+                return Response({
                     "message": "Payment failed",
-                    "data": responseModel.message
-                }, status=status.HTTP_400_BAD_REQUEST
-            )
-        else:
+                    "error": error_message
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            transaction_id = response.get('transactionId')
+            if not transaction_id:
+                raise ValueError("No transaction ID received")
+                
+            logger.info(f"Payment initiated successfully for renting {renting_id}, transaction: {transaction_id}")
+            
+        except Exception as e:
+            logger.error(f"Payment processing failed: {str(e)}")
+            return Response({
+                "message": "Payment processing failed",
+                "error": "Please try again or contact support"
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        # Save payment information
+        try:
  
-        
-            pszls = CreateMyRentingPaymentSerializers(data={
+            pszls = MyRentingPaymentSerializers(data={
                 'renting': renting_id,
                 'user': user.id,
                 'payment_method': payment_method,
-                "total_price": amount,
-                'transaction_id': responseModel.transactionId
+                'transaction_id': transaction_id
             })
             if pszls.is_valid():
                 pszls.save()
@@ -230,32 +315,29 @@ class ConfirmRentingMWMViewSet(viewsets.ModelViewSet):
                         )
                         # // update property status to not available
                     else:
-                        logger.error(rentingStatusSzs.errors)  
-                        return Response(
-                            {
-                                'message': 'Renting not confirmed.',
-                                'data': rentingStatusSzs.errors
-                            }, status=status.HTTP_400_BAD_REQUEST
-                        )
+                        logger.error(f"Renting status creation failed: {rentingStatusSzs.errors}")
+                        return Response({
+                            'message': 'Failed to create renting status record'
+                        }, status=status.HTTP_400_BAD_REQUEST)
                 else:
-                    logger.error(pStatusSzs.errors)
-                    return Response(
-                        {
-                            'message': 'Renting not confirmed.',
-                            'data': pStatusSzs.errors
-                        }, status=status.HTTP_400_BAD_REQUEST
-                    )
+                    logger.error(f"Payment status creation failed: {pStatusSzs.errors}")
+                    return Response({
+                        'message': 'Failed to create payment status record'
+                    }, status=status.HTTP_400_BAD_REQUEST)
             else:
-                logger.error(pszls.errors)
-                return Response(
-                    {
-                        'message': 'Renting not confirmed.',
-                        'data': pszls.errors
-                    }, status=status.HTTP_400_BAD_REQUEST
-                )
+                logger.error(f"Payment record creation failed: {pszls.errors}")
+                return Response({
+                    'message': 'Failed to create payment record'
+                }, status=status.HTTP_400_BAD_REQUEST)
+                
+        except Exception as e:
+            logger.error(f"Error saving payment data: {str(e)}")
+            return Response({
+                'message': 'Failed to save payment information'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             
 
-    def update_property_status(request, renting_id):
+    def update_property_status(self, renting_id):
         try:
             renting = MyRenting.objects.get(id=renting_id)
             property_instance = renting.property

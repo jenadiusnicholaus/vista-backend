@@ -266,7 +266,8 @@ class MyPropertyPurchase(models.Model):
 class MyPropertyPurchasePayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
     property_purchase = models.ForeignKey(MyPropertyPurchase, on_delete=models.CASCADE)
-    payment_method =     payment_method = models.CharField(max_length=100, null=True)   
+    payment_method = models.CharField(max_length=100, null=True)
+    transaction_id = models.CharField(max_length=100, null=True)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

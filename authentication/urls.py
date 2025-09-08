@@ -33,7 +33,4 @@ urlpatterns = [
     path('confirm-reset-password/', ResetPasswordConfirmView.as_view(), name='reset_password_confirm'),
     path('phone-number-auth/', PhoneNumberAuthenticationView.as_view(), name='phone_number_auth'),
     path('verify-phone-number-and-login/', VerifyPhoneAndLoginView.as_view(), name='verify_phone_number_login'),
-    
-
-    
 ]
