@@ -43,22 +43,18 @@ class FcmTokenModelSerializer(serializers.ModelSerializer):
     class Meta:
         model = FcmTokenModel
         fields = [
-           
             'user',
             'fcm_token',
             'time_stamp',   
             'is_stale',
             'stale_time',
-       
         ]
-        read_only_fields = ('time_stamp', 'stale_time', )
+        read_only_fields = ('time_stamp', 'is_stale')
         extra_kwargs = {
-
             'fcm_token': {'required': True},
-            'stale_time': {'required': True},
-            'time_stamp': {'required': False},
-            'is_stale': {'required': False} 
-     }
+            'stale_time': {'required': False},
+            'user': {'required': True}
+        }
 #
         
         

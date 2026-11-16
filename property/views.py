@@ -12,7 +12,7 @@ from rest_framework import viewsets
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from property.paginators import CustomPageNumberPagination
-from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
 from rest_framework import status
 
 
@@ -89,7 +89,7 @@ class GetCategoriesView(viewsets.ModelViewSet):
 class ReviewThePropertyView(viewsets.ModelViewSet):
     queryset = PropertyReview.objects.all()
     serializer_class = CreatePropertyReviewSerializers
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticatedOrReadOnly]
 
     def list(self, request, *args, **kwargs):
         queryset = self.filter_queryset(self.get_queryset())

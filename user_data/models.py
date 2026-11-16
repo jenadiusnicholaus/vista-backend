@@ -94,7 +94,7 @@ class MyBooking(models.Model):
     
 class MyBookingStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    booking = models.OneToOneField(MyBooking, on_delete=models.CASCADE)
+    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
     confirmed = models.BooleanField(default=False)
     completed = models.BooleanField(default=False)
     canceled = models.BooleanField(default=False)   
@@ -114,7 +114,7 @@ class MyBookingStatus(models.Model):
 
 class MyBookingPayment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    booking = models.OneToOneField(MyBooking, on_delete=models.CASCADE)
+    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE)
     payment_method = models.CharField(max_length=100, null=True)
     transaction_id = models.CharField(max_length=100, null=True)    
     created_at = models.DateTimeField(auto_now_add=True)
@@ -133,7 +133,7 @@ class MyBookingPayment(models.Model):
     
 class MyBookingPaymentStatus(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
-    booking = models.OneToOneField(MyBooking, on_delete=models.CASCADE, null=True)
+    booking = models.ForeignKey(MyBooking, on_delete=models.CASCADE, null=True)
 
     booking_payment = models.ForeignKey(MyBookingPayment, on_delete=models.CASCADE)
     payment_confirmed = models.BooleanField(default=False)

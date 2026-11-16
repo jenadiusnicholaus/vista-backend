@@ -71,4 +71,7 @@ media/
 # ignore service_account_file.json
 service_account_file.json
 
+# igore .md file
+*.md
+
 

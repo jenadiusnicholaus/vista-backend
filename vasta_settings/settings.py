@@ -33,6 +33,7 @@ SECRET_KEY = "django-insecure-177gh)mhx(-h#ei#geenqlet9i(pd9j-a+9cn8#q%0wxzeikah
 DEBUG = True
 
 ALLOWED_HOSTS = [
+    "192.168.1.101",
     "192.168.1.181",
     "127.0.0.1",
     "localhost",
@@ -42,6 +43,7 @@ ALLOWED_HOSTS = [
     "192.168.25.42",
     "vista.nexacon.cloud",
     "10.118.109.42",
+    "192.168.1.101",
 ]
 
 
@@ -117,7 +119,7 @@ WSGI_APPLICATION = "vasta_settings.wsgi.application"
 
 DATABASES = {
     "default": {
-        "ENGINE": "django.db.backends.mysql",
+        "ENGINE": "django.db.backends.postgresql",
         "NAME": config("DATABASE_NAME"),
         "USER": config("DATABASE_USER"),
         "PASSWORD": config("DATABASE_PASSWORD"),
@@ -230,7 +232,7 @@ STATIC_URL = "static/"
 # STATICFILES_DIRS = [
 #     BASE_DIR / "static",
 # ]
-MADIA_URL = "/media/"
+MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
 # Default primary key field type

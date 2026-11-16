@@ -1,5 +1,6 @@
 from property.paginators import CustomPageNumberPagination
 from .models import MyBookingStatus, MyBooking, MyPaymentCard
+from property.models import Property
 from user_data.azam_pay_checkout import AzamPayCheckout
 from user_data.azam_res_models import TransactionResponse
 from user_data.global_serializers import PropertyStatusUpdateSerializer
@@ -7,6 +8,7 @@ from user_data.booking_serializers import  CreateMyBookingSerializers, GetMyBook
 from rest_framework import viewsets, status 
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.decorators import action
 from django.utils import timezone
 from django.core.exceptions import ValidationError
 from decimal import Decimal, InvalidOperation
@@ -21,21 +23,147 @@ class MybookingInforsViewSet(viewsets.ModelViewSet):
     serializer_class = GetMyBookingSerializers
 
     def list(self, request, *args, **kwargs):
-       
+        property_id = request.query_params.get('property_id', None)
+        
+        if not property_id:
+            return Response({
+                'message': 'Property ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         try:
-            # Assuming `request.user` is the way to get the current user. Adjust as necessary.
-            property_id = request.query_params.get('property_id', None)
-            user_specific_queryset = self.queryset.filter(user=request.user, property_id = property_id).latest('created_at')
-            serializer = self.get_serializer(user_specific_queryset)
-            return Response(serializer.data, status=status.HTTP_200_OK)
-        except self.queryset.model.DoesNotExist:  
-            return Response({'message': 'Not Booking, please Add one now.'}, status=status.HTTP_400_BAD_REQUEST)
+            # Check if property exists
+            property_obj = Property.objects.get(id=property_id)
+            
+            # If property is available, return booking info only if it's pending/unconfirmed
+            if property_obj.availability_status:
+                try:
+                    from .models import MyBookingStatus
+                    
+                    # Get user's latest booking for this property
+                    user_booking = self.queryset.filter(
+                        user=request.user, 
+                        property_id=property_id
+                    ).latest('created_at')
+                    
+                    # Check if booking has pending/unconfirmed status
+                    try:
+                        booking_status = MyBookingStatus.objects.filter(booking=user_booking).latest('created_at')
+                        
+                        # Only return booking if it's NOT confirmed (pending status)
+                        if not booking_status.confirmed:
+                            serializer = self.get_serializer(user_booking)
+                            booking_data = serializer.data
+                            booking_data['message'] = 'Property is available. Showing pending booking.'
+                            booking_data['property_available'] = True
+                            booking_data['my_booking_status'] = {
+                                'id': booking_status.id,
+                                'confirmed': booking_status.confirmed,
+                                'completed': booking_status.completed,
+                                'canceled': booking_status.canceled,
+                                'confirmed_at': booking_status.confirmed_at,
+                                'completed_at': booking_status.completed_at,
+                                'canceled_at': booking_status.canceled_at,
+                                'created_at': booking_status.created_at,
+                                'updated_at': booking_status.updated_at
+                            }
+                            
+                            return Response(booking_data, status=status.HTTP_200_OK)
+                            
+                    except MyBookingStatus.DoesNotExist:
+                        # No booking status means it's pending
+                        serializer = self.get_serializer(user_booking)
+                        booking_data = serializer.data
+                        booking_data['message'] = 'Property is available. Showing pending booking.'
+                        booking_data['property_available'] = True
+                        booking_data['my_booking_status'] = None  # No status record exists
+                        
+                        return Response(booking_data, status=status.HTTP_200_OK)
+                    
+                except self.queryset.model.DoesNotExist:
+                    pass
+                    
+                # No pending booking found or user has no booking at all
+                return Response({
+                    'message': 'Property is available. User has no booking or no pending booking.',
+                    'property_available': True,
+                    'has_booking': False
+                }, status=status.HTTP_200_OK)
+            
+            # Property is not available, check if user has an active booking for this property
+            try:
+                from .models import MyBookingStatus
+                
+                # Get user's booking for this property
+                user_booking = self.queryset.filter(
+                    user=request.user, 
+                    property_id=property_id
+                ).latest('created_at')
+                
+                # Check if this booking has an active status (confirmed and not completed/canceled)
+                try:
+                    booking_status = MyBookingStatus.objects.filter(booking=user_booking).latest('created_at')
+                    
+                    # Check if booking is active (confirmed but not completed or canceled)
+                    if booking_status.confirmed and not booking_status.completed and not booking_status.canceled:
+                        # Check if booking dates are still active (check-out date hasn't passed)
+                        from django.utils import timezone
+                        from datetime import datetime
+                        
+                        current_date = timezone.now().date()
+                        
+                        if user_booking.check_out >= current_date:
+                            # Booking is active
+                            serializer = self.get_serializer(user_booking)
+                            booking_data = serializer.data
+                            booking_data['booking_status'] = 'active'
+                            booking_data['property_available'] = False
+                            
+                            return Response(booking_data, status=status.HTTP_200_OK)
+                
+                except MyBookingStatus.DoesNotExist:
+                    pass
+                
+                # If we reach here, user has booking but it's not active
+                return Response({
+                    'message': 'Property is not available and you have no active booking.',
+                    'property_available': False
+                }, status=status.HTTP_200_OK)
+                
+            except self.queryset.model.DoesNotExist:
+                # User has no booking for this property
+                return Response({
+                    'message': 'Property is not available and you have no booking for this property.',
+                    'property_available': False
+                }, status=status.HTTP_200_OK)
+                
+        except Property.DoesNotExist:
+            return Response({
+                'message': 'Property not found'
+            }, status=status.HTTP_404_NOT_FOUND)
         
     def create(self, request, *args, **kwargs):
         logger = logging.getLogger(__name__)
         user = request.user
         
-        # Validate required fields
+        property_id = request.query_params.get('property_id', None)
+        if not property_id:
+            return Response({
+                'message': 'Property ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if property exists and is available
+        try:
+            property_obj = Property.objects.get(id=property_id)
+            if not property_obj.availability_status:
+                return Response({
+                    'message': 'Property is not available for booking'
+                }, status=status.HTTP_400_BAD_REQUEST)
+        except Property.DoesNotExist:
+            return Response({
+                'message': 'Property not found'
+            }, status=status.HTTP_404_NOT_FOUND)
+        
+        # Regular booking creation - validate all required fields
         required_fields = ['check_in', 'check_out', 'total_price', 'adult', 'children']
         missing_fields = [field for field in required_fields if not request.data.get(field)]
         
@@ -65,28 +193,34 @@ class MybookingInforsViewSet(viewsets.ModelViewSet):
             return Response({
                 'message': f'Invalid numeric values: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
-        serializers = CreateMyBookingSerializers(data={
+        
+        booking_data = {
             'user': user.id,
-            "property": request.query_params.get('property_id', None),  
+            "property": property_id,  
             'check_in': check_in,
             'check_out': check_out,
             'total_guest': int(adult) + int(children),
             'total_price': total_price,
             'adult': adult,
             'children': children
-        })
+        }
+        
+        serializers = CreateMyBookingSerializers(data=booking_data)
         if serializers.is_valid():
-            serializers.save()
+            booking_instance = serializers.save()
+            logger.info(f"Booking created successfully with ID: {booking_instance.id}")
             return Response(
                 {
                     'message': 'Booking information added successfully.',
+                    'booking_id': booking_instance.id,
+                    'data': serializers.data
                 }, status=status.HTTP_201_CREATED)
         else: 
-            
+            logger.error(f"Booking creation failed: {serializers.errors}")
             return Response(
                 {
                     'message': 'Booking information not added.',
-                    'data': serializers.errors
+                    'errors': serializers.errors
                 },
                  status=status.HTTP_400_BAD_REQUEST)
 
@@ -463,12 +597,70 @@ class BookingRequestViewSet(viewsets.ModelViewSet):
     def list(self, request, *args, **kwargs):
         # paginaye it
         user = request.user
-        queryset = self.queryset.filter(user=user)
+        queryset = self.queryset.filter(user=user).order_by('-created_at')
         page = self.paginate_queryset(queryset)
         if page is not None:
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data)
+    
+    @action(detail=False, methods=['get'])
+    def latest(self, request):
+        """Get the latest booking for the authenticated user"""
+        try:
+            user = request.user
+            latest_booking = MyBooking.objects.filter(user=user).latest('created_at')
+            serializer = self.get_serializer(latest_booking)
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        except MyBooking.DoesNotExist:
+            return Response({
+                'message': 'No bookings found for this user.'
+            }, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=False, methods=['get'])
+    def for_duplication(self, request):
+        """Get user's previous bookings that can be duplicated"""
+        user = request.user
+        limit = request.query_params.get('limit', 10)
+        
+        try:
+            limit = int(limit)
+            if limit > 50:  # Prevent excessive data retrieval
+                limit = 50
+        except (ValueError, TypeError):
+            limit = 10
+            
+        # Get user's previous bookings, ordered by most recent
+        bookings = MyBooking.objects.filter(user=user).order_by('-created_at')[:limit]
+        
+        if not bookings.exists():
+            return Response({
+                'message': 'No previous bookings found for duplication.',
+                'data': []
+            }, status=status.HTTP_200_OK)
+        
+        # Create simplified data for duplication selection
+        booking_data = []
+        for booking in bookings:
+            booking_data.append({
+                'id': booking.id,
+                'property_name': booking.property.name,
+                'property_id': booking.property.id,
+                'check_in': booking.check_in,
+                'check_out': booking.check_out,
+                'total_guest': booking.total_guest,
+                'total_price': booking.total_price,
+                'adult': booking.adult,
+                'children': booking.children,
+                'created_at': booking.created_at,
+                'property_image': booking.property.property_images.first().image.url if booking.property.property_images.exists() else None
+            })
+        
+        return Response({
+            'message': 'Previous bookings retrieved successfully.',
+            'count': len(booking_data),
+            'data': booking_data
+        }, status=status.HTTP_200_OK)
     
     

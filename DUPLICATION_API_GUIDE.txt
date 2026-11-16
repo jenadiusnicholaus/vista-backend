@@ -1,0 +1,229 @@
+# Vista Booking & Renting Duplication API Guide
+
+## Overview
+The Vista platform allows users to duplicate their previous bookings and rentals with new dates, making it easy to rebook the same property with similar preferences.
+
+## Features
+- Duplicate existing bookings with new check-in/check-out dates
+- Duplicate existing rentals with new dates
+- Retrieve previous bookings/rentals for selection
+- Automatic validation of property availability
+- Preserve guest counts, pricing, and other preferences
+
+## API Endpoints
+
+### 1. Get Previous Bookings for Duplication
+**Endpoint:** `GET /api/booking-requests/for_duplication/`
+**Authentication:** Required
+**Description:** Retrieve user's previous bookings that can be duplicated
+
+**Query Parameters:**
+- `limit` (optional): Number of bookings to return (default: 10, max: 50)
+
+**Response:**
+```json
+{
+    "message": "Previous bookings retrieved successfully.",
+    "count": 5,
+    "data": [
+        {
+            "id": 123,
+            "property_name": "Luxury Beach Villa",
+            "property_id": 45,
+            "check_in": "2024-01-15",
+            "check_out": "2024-01-20",
+            "total_guest": 4,
+            "total_price": "500000.00",
+            "adult": 2,
+            "children": 2,
+            "created_at": "2024-01-10T10:30:00Z",
+            "property_image": "https://example.com/property/image.jpg"
+        }
+    ]
+}
+```
+
+### 2. Duplicate Booking
+**Endpoint:** `POST /api/booking-infors/?property_id={property_id}`
+**Authentication:** Required
+**Description:** Create a new booking by duplicating an existing one
+
+**Request Body:**
+```json
+{
+    "duplicate_booking_id": 123,
+    "check_in": "2024-02-15",
+    "check_out": "2024-02-20",
+    "total_price": "550000.00"  // Optional, uses original if not provided
+}
+```
+
+**Response (Success):**
+```json
+{
+    "message": "Booking information added successfully.",
+    "booking_id": 456,
+    "data": {
+        "id": 456,
+        "user": 1,
+        "property": 45,
+        "check_in": "2024-02-15",
+        "check_out": "2024-02-20",
+        "total_guest": 4,
+        "total_price": "550000.00",
+        "adult": 2,
+        "children": 2,
+        "created_at": "2024-02-01T14:30:00Z"
+    }
+}
+```
+
+### 3. Get Previous Rentals for Duplication
+**Endpoint:** `GET /api/my-renting-requests/for_duplication/`
+**Authentication:** Required
+**Description:** Retrieve user's previous rentals that can be duplicated
+
+**Query Parameters:**
+- `limit` (optional): Number of rentals to return (default: 10, max: 50)
+
+**Response:**
+```json
+{
+    "message": "Previous rentals retrieved successfully.",
+    "count": 3,
+    "data": [
+        {
+            "id": 789,
+            "property_name": "Downtown Apartment",
+            "property_id": 67,
+            "check_in": "2024-01-01",
+            "check_out": "2024-01-31",
+            "renting_duration": {
+                "id": 2,
+                "duration": "Monthly"
+            },
+            "total_family_member": 3,
+            "total_price": "1200000.00",
+            "adult": 2,
+            "children": 1,
+            "created_at": "2023-12-25T09:15:00Z",
+            "property_image": "https://example.com/rental/image.jpg"
+        }
+    ]
+}
+```
+
+### 4. Duplicate Rental
+**Endpoint:** `POST /api/my-renting/`
+**Authentication:** Required
+**Description:** Create a new rental by duplicating an existing one
+
+**Request Body:**
+```json
+{
+    "duplicate_renting_id": 789,
+    "property": 67,
+    "check_in": "2024-03-01",
+    "check_out": "2024-03-31",
+    "total_price": "1250000.00"  // Optional, uses original if not provided
+}
+```
+
+**Response (Success):**
+```json
+{
+    "message": "Renting created successfully",
+    "rental_id": 890,
+    "data": {
+        "id": 890,
+        "user": 1,
+        "property": 67,
+        "check_in": "2024-03-01",
+        "check_out": "2024-03-31",
+        "renting_duration": 2,
+        "total_family_member": 3,
+        "total_price": "1250000.00",
+        "adult": 2,
+        "children": 1,
+        "created_at": "2024-02-20T11:45:00Z"
+    }
+}
+```
+
+## Error Responses
+
+### Common Error Cases:
+
+**1. Missing Required Fields:**
+```json
+{
+    "message": "Missing required fields for duplication: check_in, check_out"
+}
+```
+
+**2. Original Booking/Rental Not Found:**
+```json
+{
+    "message": "Booking to duplicate not found"
+}
+```
+
+**3. Property No Longer Available:**
+```json
+{
+    "message": "Property \"Luxury Beach Villa\" is no longer available for booking"
+}
+```
+
+**4. Invalid Property ID:**
+```json
+{
+    "message": "Property not found"
+}
+```
+
+## Usage Flow
+
+### For Bookings:
+1. Call `GET /api/booking-requests/for_duplication/` to get user's previous bookings
+2. User selects a booking to duplicate from the list
+3. Call `POST /api/booking-infors/?property_id={property_id}` with:
+   - `duplicate_booking_id`: ID of the booking to duplicate
+   - `check_in`: New check-in date
+   - `check_out`: New check-out date
+   - `total_price`: Optional new price
+
+### For Rentals:
+1. Call `GET /api/my-renting-requests/for_duplication/` to get user's previous rentals
+2. User selects a rental to duplicate from the list
+3. Call `POST /api/my-renting/` with:
+   - `duplicate_renting_id`: ID of the rental to duplicate
+   - `property`: Property ID (same as original)
+   - `check_in`: New check-in date
+   - `check_out`: New check-out date
+   - `total_price`: Optional new price
+
+## Validation Rules
+
+1. **Authentication**: All endpoints require user authentication
+2. **Property Availability**: Property must still be available for booking/renting
+3. **Ownership**: Users can only duplicate their own bookings/rentals
+4. **Required Fields**: New dates are always required for duplication
+5. **Date Validation**: Check-in must be before check-out
+6. **Price Validation**: If provided, total_price must be positive
+
+## Benefits
+
+- **User Experience**: Quick rebooking with familiar properties
+- **Data Consistency**: Preserves guest counts and preferences
+- **Flexibility**: Allows price updates for new dates
+- **Validation**: Ensures property is still available
+- **History**: Maintains connection to original booking/rental patterns
+
+## Notes
+
+- Duplication creates a NEW booking/rental record with a NEW ID
+- Original booking/rental data is preserved unchanged
+- Only dates and optionally price are updated in the duplicate
+- Property availability is validated at the time of duplication
+- All other booking/rental details (guests, duration, etc.) are copied exactly

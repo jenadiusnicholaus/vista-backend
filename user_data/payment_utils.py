@@ -325,55 +325,97 @@ class PaymentProcessor:
     def _save_renting_payment(self, payment_data: Dict[str, Any], transaction_id: str):
         """Save renting payment record with atomic transaction"""
         from .renting_serializers import CreateMyRentingPaymentSerializers, CreateMyRentingPaymentStatusSerializer, CreateMyRentingStatusSerializer
+        from .models import MyRentingPayment
         
         try:
-            # Save payment
-            payment_serializer = CreateMyRentingPaymentSerializers(data={
-                'renting': self.renting_id,
-                'user': self.user.id,
-                'payment_method': payment_data['payment_method'],
-                'total_price': float(payment_data['amount']),
-                'transaction_id': transaction_id
-            })
-            
-            if not payment_serializer.is_valid():
-                self.logger.error(f"Payment serializer errors: {payment_serializer.errors}")
-                return None
+            # Check if payment already exists for this renting
+            existing_payment = None
+            try:
+                existing_payment = MyRentingPayment.objects.get(renting_id=self.renting_id)
+                self.logger.info(f"Found existing payment for renting {self.renting_id}, updating...")
                 
-            payment_record = payment_serializer.save()
-            
-            # Save payment status
-            payment_status_serializer = CreateMyRentingPaymentStatusSerializer(data={
-                'user': self.user.id,
-                'renting': self.renting_id,
-                'renting_payment': payment_record.id,
-                'payment_confirmed': False,
-                'payment_completed': False,
-                'payment_canceled': False,
-                'confirmed_at': timezone.now()
-            })
-            
-            if not payment_status_serializer.is_valid():
-                self.logger.error(f"Payment status serializer errors: {payment_status_serializer.errors}")
-                raise Exception("Failed to save payment status")
+                # Update existing payment
+                existing_payment.payment_method = payment_data['payment_method']
+                existing_payment.total_price = float(payment_data['amount'])
+                existing_payment.transaction_id = transaction_id
+                existing_payment.save()
+                payment_record = existing_payment
                 
-            payment_status_serializer.save()
-            
-            # Save renting status
-            renting_status_serializer = CreateMyRentingStatusSerializer(data={
-                'user': self.user.id,
-                'renting': self.renting_id,
-                'renting_request_confirmed': True,
-                'renting_status': 'ongoing',
-                'confirmed_at': timezone.now(),
-                'started_at': timezone.now()
-            })
-            
-            if not renting_status_serializer.is_valid():
-                self.logger.error(f"Renting status serializer errors: {renting_status_serializer.errors}")
-                raise Exception("Failed to save renting status")
+            except MyRentingPayment.DoesNotExist:
+                # Create new payment
+                payment_serializer = CreateMyRentingPaymentSerializers(data={
+                    'renting': self.renting_id,
+                    'user': self.user.id,
+                    'payment_method': payment_data['payment_method'],
+                    'total_price': float(payment_data['amount']),
+                    'transaction_id': transaction_id
+                })
                 
-            renting_status_serializer.save()
+                if not payment_serializer.is_valid():
+                    self.logger.error(f"Payment serializer errors: {payment_serializer.errors}")
+                    return None
+                    
+                payment_record = payment_serializer.save()
+            
+            # Handle payment status (OneToOneField with renting)
+            from .models import MyRentingPaymentStatus, MyRentingStatus
+            
+            try:
+                existing_payment_status = MyRentingPaymentStatus.objects.get(renting_id=self.renting_id)
+                # Update existing payment status
+                existing_payment_status.renting_payment = payment_record
+                existing_payment_status.payment_confirmed = False
+                existing_payment_status.payment_completed = False
+                existing_payment_status.payment_canceled = False
+                existing_payment_status.confirmed_at = timezone.now()
+                existing_payment_status.save()
+                self.logger.info(f"Updated existing payment status for renting {self.renting_id}")
+                
+            except MyRentingPaymentStatus.DoesNotExist:
+                # Create new payment status
+                payment_status_serializer = CreateMyRentingPaymentStatusSerializer(data={
+                    'user': self.user.id,
+                    'renting': self.renting_id,
+                    'renting_payment': payment_record.id,
+                    'payment_confirmed': False,
+                    'payment_completed': False,
+                    'payment_canceled': False,
+                    'confirmed_at': timezone.now()
+                })
+                
+                if not payment_status_serializer.is_valid():
+                    self.logger.error(f"Payment status serializer errors: {payment_status_serializer.errors}")
+                    raise Exception("Failed to save payment status")
+                    
+                payment_status_serializer.save()
+            
+            # Handle renting status (OneToOneField with renting)
+            try:
+                existing_renting_status = MyRentingStatus.objects.get(renting_id=self.renting_id)
+                # Update existing renting status
+                existing_renting_status.renting_request_confirmed = True
+                existing_renting_status.renting_status = 'ongoing'
+                existing_renting_status.confirmed_at = timezone.now()
+                existing_renting_status.started_at = timezone.now()
+                existing_renting_status.save()
+                self.logger.info(f"Updated existing renting status for renting {self.renting_id}")
+                
+            except MyRentingStatus.DoesNotExist:
+                # Create new renting status
+                renting_status_serializer = CreateMyRentingStatusSerializer(data={
+                    'user': self.user.id,
+                    'renting': self.renting_id,
+                    'renting_request_confirmed': True,
+                    'renting_status': 'ongoing',
+                    'confirmed_at': timezone.now(),
+                    'started_at': timezone.now()
+                })
+                
+                if not renting_status_serializer.is_valid():
+                    self.logger.error(f"Renting status serializer errors: {renting_status_serializer.errors}")
+                    raise Exception("Failed to save renting status")
+                    
+                renting_status_serializer.save()
             
             return payment_record
             
